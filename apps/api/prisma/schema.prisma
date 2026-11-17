@@ -1,0 +1,505 @@
+// Esquema de base de datos de EstudioYA. Documentación: docs/DATABASE.md
+//
+// Convenciones:
+//  - Tablas en snake_case plural (@@map); columnas en camelCase.
+//  - IDs UUID. Fechas en UTC con zona horaria (timestamptz).
+//  - Dinero: enteros en centavos de ARS (nunca decimales ni floats).
+//  - Las restricciones que Prisma no soporta (EXCLUDE, CHECK, índices parciales)
+//    viven en prisma/sql/001_constraints.sql y se agregan a la migración inicial.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum TeacherStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum TeacherType {
+  ADVANCED_STUDENT
+  GRADUATE
+}
+
+enum DocumentKind {
+  STUDENT_CERTIFICATE
+  DEGREE
+}
+
+enum ClassType {
+  INDIVIDUAL
+  GROUP
+}
+
+enum Modality {
+  ONLINE
+  IN_PERSON
+}
+
+enum SlotStatus {
+  OPEN
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum CancelledBy {
+  STUDENT
+  TEACHER
+  SYSTEM
+  ADMIN
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  RELEASED
+  FAILED
+}
+
+enum MessageStatus {
+  VISIBLE
+  FLAGGED
+  BLOCKED
+}
+
+enum TicketCategory {
+  PAYMENT
+  CLASS
+  ACCOUNT
+  TEACHER_REPORT
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+// ───────────────────────────── Usuarios y auth ─────────────────────────────
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique
+  passwordHash     String? // null si se registró solo con Google
+  googleId         String?    @unique
+  firstName        String
+  lastName         String
+  role             Role
+  status           UserStatus @default(ACTIVE)
+  emailVerifiedAt  DateTime?  @db.Timestamptz(3)
+  /// Declaración de ser mayor de 18 años (evidencia legal).
+  adultDeclaredAt  DateTime   @db.Timestamptz(3)
+  termsAcceptedAt  DateTime   @db.Timestamptz(3)
+  termsVersion     String
+  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
+
+  teacherProfile   TeacherProfile?
+  refreshTokens    RefreshToken[]
+  bookings         Booking[]        @relation("StudentBookings")
+  reviewsWritten   Review[]
+  studentChats     Conversation[]   @relation("ConversationStudent")
+  teacherChats     Conversation[]   @relation("ConversationTeacher")
+  messages         Message[]
+  messageReports   MessageReport[]
+  tickets          SupportTicket[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ───────────────────────────── Catálogo ─────────────────────────────
+
+model Faculty {
+  id       String @id @default(uuid()) @db.Uuid
+  name     String @unique
+  slug     String @unique
+  subjects Subject[]
+  teachers TeacherProfile[]
+
+  @@map("faculties")
+}
+
+model Subject {
+  id        String @id @default(uuid()) @db.Uuid
+  facultyId String @db.Uuid
+  name      String
+  slug      String @unique
+
+  faculty         Faculty          @relation(fields: [facultyId], references: [id])
+  teacherSubjects TeacherSubject[]
+  slots           AvailabilitySlot[]
+
+  @@unique([facultyId, name])
+  @@map("subjects")
+}
+
+// ───────────────────────────── Profesores ─────────────────────────────
+
+model TeacherProfile {
+  id               String        @id @default(uuid()) @db.Uuid
+  userId           String        @unique @db.Uuid
+  type             TeacherType
+  status           TeacherStatus @default(PENDING)
+  bio              String?
+  avatarUrl        String?
+  /// Facultad/carrera de origen del profesor.
+  facultyId        String?       @db.Uuid
+  careerName       String?
+  graduationYear   Int?
+  rejectionReason  String?
+  reviewedById     String?       @db.Uuid
+  reviewedAt       DateTime?     @db.Timestamptz(3)
+
+  // Cuenta de cobro (Mercado Pago, OAuth). Los tokens se guardan CIFRADOS.
+  mpUserId             String?
+  mpAccessTokenEnc     String?
+  mpRefreshTokenEnc    String?
+  mpConnectedAt        DateTime? @db.Timestamptz(3)
+
+  // Estadísticas denormalizadas, recalculadas por el job `ratings.recalculate`.
+  ratingCount      Int      @default(0)
+  ratingAvg        Decimal  @default(0) @db.Decimal(3, 2)
+  minutesTaught    Int      @default(0)
+  minutesLast90d   Int      @default(0)
+  cancellationRate Decimal  @default(0) @db.Decimal(4, 3)
+  rankingScore     Float    @default(0)
+  statsUpdatedAt   DateTime? @db.Timestamptz(3)
+
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faculty   Faculty?  @relation(fields: [facultyId], references: [id])
+  documents VerificationDocument[]
+  subjects  TeacherSubject[]
+  slots     AvailabilitySlot[]
+  reviews   Review[]
+  payouts   Payout[]
+
+  @@index([status, rankingScore(sort: Desc)])
+  @@map("teacher_profiles")
+}
+
+model VerificationDocument {
+  id               String       @id @default(uuid()) @db.Uuid
+  teacherProfileId String       @db.Uuid
+  kind             DocumentKind
+  /// Clave del objeto en el almacenamiento S3-compatible (bucket privado).
+  storageKey       String
+  uploadedAt       DateTime     @default(now()) @db.Timestamptz(3)
+
+  teacher TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@index([teacherProfileId])
+  @@map("verification_documents")
+}
+
+/// Materias que dicta un profesor y a qué precio por hora (en centavos ARS).
+model TeacherSubject {
+  id                  String  @id @default(uuid()) @db.Uuid
+  teacherProfileId    String  @db.Uuid
+  subjectId           String  @db.Uuid
+  /// Precio por hora, clase individual. null = no ofrece individuales.
+  individualPriceCents Int?
+  /// Precio por hora POR ALUMNO, clase grupal. null = no ofrece grupales.
+  groupPriceCents      Int?
+
+  teacher TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  subject Subject        @relation(fields: [subjectId], references: [id])
+
+  @@unique([teacherProfileId, subjectId])
+  @@index([subjectId])
+  @@map("teacher_subjects")
+}
+
+// ───────────────────────────── Agenda y reservas ─────────────────────────────
+
+model AvailabilitySlot {
+  id               String     @id @default(uuid()) @db.Uuid
+  teacherProfileId String     @db.Uuid
+  subjectId        String     @db.Uuid
+  classType        ClassType
+  modality         Modality
+  startsAt         DateTime   @db.Timestamptz(3)
+  endsAt           DateTime   @db.Timestamptz(3)
+  /// Precio por hora por alumno, copiado al crear el slot (los cambios de precio no lo afectan).
+  priceCents       Int
+  minStudents      Int        @default(1)
+  maxStudents      Int        @default(1)
+  meetingUrl       String? // clases online
+  location         String? // clases presenciales
+  status           SlotStatus @default(OPEN)
+  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+
+  teacher  TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  subject  Subject        @relation(fields: [subjectId], references: [id])
+  bookings Booking[]
+
+  @@index([teacherProfileId, startsAt])
+  @@index([subjectId, startsAt])
+  @@map("availability_slots")
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  slotId          String        @db.Uuid
+  studentId       String        @db.Uuid
+  status          BookingStatus @default(PENDING_PAYMENT)
+  /// Copia de las fechas del slot (necesaria para impedir solapamientos del alumno en la base).
+  startsAt        DateTime      @db.Timestamptz(3)
+  endsAt          DateTime      @db.Timestamptz(3)
+  /// Importes congelados al reservar (centavos ARS).
+  amountCents     Int
+  commissionBps   Int // 3500 = 35 %
+  commissionCents Int
+  teacherNetCents Int
+  holdExpiresAt   DateTime?     @db.Timestamptz(3)
+  cancelledBy     CancelledBy?
+  cancelledAt     DateTime?     @db.Timestamptz(3)
+  cancelReason    String?
+  completedAt     DateTime?     @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
+
+  slot         AvailabilitySlot @relation(fields: [slotId], references: [id])
+  student      User             @relation("StudentBookings", fields: [studentId], references: [id])
+  payment      Payment?
+  payout       Payout?
+  review       Review?
+  conversation Conversation?
+
+  @@index([studentId, startsAt])
+  @@index([slotId, status])
+  @@index([status, holdExpiresAt])
+  @@map("bookings")
+}
+
+// ───────────────────────────── Pagos ─────────────────────────────
+
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  bookingId         String        @unique @db.Uuid
+  provider          String        @default("MERCADO_PAGO")
+  preferenceId      String?
+  externalPaymentId String?       @unique
+  status            PaymentStatus @default(PENDING)
+  amountCents       Int
+  commissionCents   Int
+  currency          String        @default("ARS")
+  paidAt            DateTime?     @db.Timestamptz(3)
+  refundedAt        DateTime?     @db.Timestamptz(3)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+/// Registro de webhooks recibidos; la clave única garantiza idempotencia.
+model WebhookEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  provider    String
+  eventKey    String
+  payload     Json
+  receivedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  processedAt DateTime? @db.Timestamptz(3)
+  error       String?
+
+  @@unique([provider, eventKey])
+  @@map("webhook_events")
+}
+
+model Payout {
+  id               String       @id @default(uuid()) @db.Uuid
+  bookingId        String       @unique @db.Uuid
+  teacherProfileId String       @db.Uuid
+  amountCents      Int
+  status           PayoutStatus @default(PENDING)
+  releaseAt        DateTime     @db.Timestamptz(3)
+  releasedAt       DateTime?    @db.Timestamptz(3)
+  externalId       String?
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+
+  booking Booking        @relation(fields: [bookingId], references: [id])
+  teacher TeacherProfile @relation(fields: [teacherProfileId], references: [id])
+
+  @@index([teacherProfileId, status])
+  @@map("payouts")
+}
+
+// ───────────────────────────── Chat ─────────────────────────────
+
+model Conversation {
+  id            String    @id @default(uuid()) @db.Uuid
+  studentId     String    @db.Uuid
+  teacherUserId String    @db.Uuid
+  /// Reserva que originó la conversación (opcional).
+  bookingId     String?   @unique @db.Uuid
+  lastMessageAt DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  student  User      @relation("ConversationStudent", fields: [studentId], references: [id])
+  teacher  User      @relation("ConversationTeacher", fields: [teacherUserId], references: [id])
+  booking  Booking?  @relation(fields: [bookingId], references: [id])
+  messages Message[]
+
+  @@unique([studentId, teacherUserId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @db.Uuid
+  senderId       String        @db.Uuid
+  body           String
+  status         MessageStatus @default(VISIBLE)
+  /// Motivo si el filtro lo marcó o bloqueó (insulto, dato de contacto, link).
+  flagReason     String?
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+
+  conversation Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User            @relation(fields: [senderId], references: [id])
+  reports      MessageReport[]
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model MessageReport {
+  id         String    @id @default(uuid()) @db.Uuid
+  messageId  String    @db.Uuid
+  reporterId String    @db.Uuid
+  reason     String
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  resolvedAt DateTime? @db.Timestamptz(3)
+
+  message  Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reporter User    @relation(fields: [reporterId], references: [id])
+
+  @@map("message_reports")
+}
+
+// ───────────────────────────── Reseñas ─────────────────────────────
+
+model Review {
+  id               String   @id @default(uuid()) @db.Uuid
+  bookingId        String   @unique @db.Uuid // una reseña por reserva completada
+  studentId        String   @db.Uuid
+  teacherProfileId String   @db.Uuid
+  rating           Int // 1..5 (CHECK en 001_constraints.sql)
+  comment          String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  booking Booking        @relation(fields: [bookingId], references: [id])
+  student User           @relation(fields: [studentId], references: [id])
+  teacher TeacherProfile @relation(fields: [teacherProfileId], references: [id])
+
+  @@index([teacherProfileId, createdAt])
+  @@map("reviews")
+}
+
+// ───────────────────────────── Soporte, FAQ, configuración ─────────────────────────────
+
+model Faq {
+  id        String   @id @default(uuid()) @db.Uuid
+  question  String
+  answer    String
+  position  Int      @default(0)
+  published Boolean  @default(true)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("faqs")
+}
+
+model SupportTicket {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String?        @db.Uuid
+  email     String
+  category  TicketCategory
+  subject   String
+  message   String
+  status    TicketStatus   @default(OPEN)
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([status, createdAt])
+  @@map("support_tickets")
+}
+
+/// Parámetros editables por el admin, ej: "pricing.individual" = {"minCents": 400000, "maxCents": 1500000}
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?  @db.Uuid
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("platform_settings")
+}
+
+// ───────────────────────────── Mensajería (patrón outbox) ─────────────────────────────
+
+/// Se escribe en la MISMA transacción que el cambio de negocio; un publicador lo envía a RabbitMQ.
+model OutboxEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  routingKey  String // ej: "booking.confirmed"
+  payload     Json
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  publishedAt DateTime? @db.Timestamptz(3)
+  attempts    Int       @default(0)
+
+  @@index([publishedAt, createdAt])
+  @@map("outbox_events")
+}

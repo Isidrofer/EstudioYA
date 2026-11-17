@@ -1,0 +1,49 @@
+# Infraestructura local de desarrollo. La API y la web corren fuera de Docker (npm run dev:*).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: estudioya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-estudioya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-estudioya_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-estudioya}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-estudioya} -d ${POSTGRES_DB:-estudioya}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: estudioya-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-estudioya}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-estudioya_dev}
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Panel de gestión
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: estudioya-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # UI para ver los emails enviados en desarrollo
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
