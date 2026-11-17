@@ -9,7 +9,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-estudioya_dev}
       POSTGRES_DB: ${POSTGRES_DB:-estudioya}
     ports:
-      - "5433:5432"
+      # Puerto del host 5433 (configurable con POSTGRES_PORT) para evitar conflictos en Windows/WSL
+      # con el 5432. Dentro del contenedor sigue siendo 5432.
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

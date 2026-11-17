@@ -80,3 +80,17 @@ Los valores concretos del rango de precios **están por definir** (ver ARCHITECT
 ## Migraciones
 
 Ver [CONTRIBUTING.md](../CONTRIBUTING.md#migraciones-de-base-de-datos). Procedimiento de la migración inicial en el [README](../README.md#cómo-levantar-el-entorno-local).
+
+| Migración | Fecha | Contenido |
+|---|---|---|
+| `init` | 2026-11-17 | Todas las tablas del esquema + restricciones de `sql/001_constraints.sql` (EXCLUDE, CHECK, índices parciales) |
+
+**Verificar que las restricciones quedaron aplicadas:**
+
+```bash
+docker exec estudioya-postgres psql -U estudioya -d estudioya -c "\d bookings"
+```
+
+Debe listar `bookings_no_student_overlap` (EXCLUDE) y `bookings_amounts` (CHECK).
+
+**Regla importante:** una migración ya aplicada **no se edita**. Si Prisma dice *"The migration was modified after it was applied"*, solo en desarrollo se arregla con `npx dotenv -e ../../.env -- prisma migrate reset` (ejecutado dentro de `apps/api`), que **borra todos los datos** de la base local. Nunca en producción.

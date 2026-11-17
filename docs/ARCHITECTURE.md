@@ -1,7 +1,7 @@
 # Arquitectura de EstudioYA
 
 > Documento vivo. Se actualiza en el mismo PR que cambia endpoints, puertos, contratos o reglas.
-> Última actualización: 2026-11-02 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
+> Última actualización: 2026-11-17 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
 
 ## Índice
 
@@ -29,7 +29,7 @@ flowchart LR
   U[Navegador<br/>alumno / profesor / admin] -->|HTTPS| W[Web<br/>Next.js :3000]
   W -->|REST /api/v1| A[API NestJS :4000]
   U -->|WebSocket /chat| A
-  A --> DB[(PostgreSQL :5432)]
+  A --> DB[(PostgreSQL<br/>host :5433)]
   A -->|publica eventos<br/>outbox| MQ[[RabbitMQ :5672]]
   MQ -->|consume| A
   A -->|checkout, OAuth| MP[Mercado Pago]
@@ -65,13 +65,15 @@ Pendientes de elegir cuando haga falta (no bloquean el MVP): librería de UI, es
 |---|---|---|---|---|
 | Web (Next.js) | **3000** | HTTP | local | `npm run dev:web` |
 | API (NestJS) | **4000** | HTTP + WebSocket | local | Prefijo `/api/v1`; chat en namespace `/chat` |
-| PostgreSQL | **5432** | TCP | Docker | usuario/clave en `.env` |
+| PostgreSQL | **5433** (host) → 5432 (contenedor) | TCP | Docker | usuario/clave en `.env`; el puerto del host se cambia con `POSTGRES_PORT` |
 | RabbitMQ (AMQP) | **5672** | AMQP | Docker | |
 | RabbitMQ (panel) | **15672** | HTTP | Docker | http://localhost:15672 |
 | Mailpit (SMTP) | **1025** | SMTP | Docker | |
 | Mailpit (UI) | **8025** | HTTP | Docker | bandeja de emails de prueba |
 
 Si un puerto está ocupado, cambiarlo en `.env` y en `docker-compose.yml`, y **actualizar esta tabla**.
+
+> **Por qué PostgreSQL usa 5433 en el host:** en Windows con Docker Desktop (WSL), el proceso `wslrelay.exe` puede retener el 5432 sin reenviarlo al contenedor, y Prisma falla con `P1001: Can't reach database server`. Usar 5433 y `127.0.0.1` (en vez de `localhost`) lo evita. Ver [solución de problemas](../README.md#solución-de-problemas).
 
 ## 4. Módulos del backend
 

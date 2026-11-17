@@ -3,7 +3,7 @@
 Plataforma de clases particulares **hecha por estudiantes, para estudiantes**. Un estudiante reserva una clase en el calendario de un profesor (estudiante avanzado o graduado), paga dentro de la app y después puntúa al profesor.
 
 > **Estado del proyecto:** Fase 0 (fundaciones). Ver el [roadmap](#roadmap) y el [CHANGELOG](#changelog).
-> Última actualización: 2026-11-02
+> Última actualización: 2026-11-17
 
 ## Características previstas
 
@@ -39,6 +39,7 @@ estudioya/
 │   │   ├── prisma/          #   schema.prisma y sql/001_constraints.sql
 │   │   └── src/
 │   └── web/                 # Frontend Next.js
+│       └── public/          #   Recursos estáticos: logos/, banners/, favicon (se sirven desde "/")
 ├── packages/
 │   └── shared/              # Constantes, errores y schemas Zod compartidos (API ↔ web)
 ├── docs/
@@ -52,10 +53,12 @@ estudioya/
 
 ## Cómo levantar el entorno local
 
-Requisitos: Node.js 22 (`nvm use`), Docker y Docker Compose.
+Requisitos: Node.js 22, Git, Docker Desktop (abierto y corriendo) y VS Code.
+
+> **Windows:** clonar/guardar el proyecto **fuera de OneDrive** (por ejemplo `C:\dev\estudioya`). OneDrive sincroniza `node_modules` y bloquea archivos mientras corren Prisma y Next.js.
 
 ```bash
-cp .env.example .env          # completar valores (ver docs/ARCHITECTURE.md §10)
+cp .env.example .env          # en Windows: copy .env.example .env. Completar valores (docs/ARCHITECTURE.md §10)
 npm install
 npm run infra:up              # PostgreSQL, RabbitMQ y Mailpit
 npm run db:generate           # genera el cliente Prisma
@@ -70,8 +73,18 @@ npm run dev:web               # Web en http://localhost:3000
 |---|---|
 | Web | http://localhost:3000 |
 | API | http://localhost:4000/api/v1 |
+| PostgreSQL | 127.0.0.1:5433 |
 | RabbitMQ (panel) | http://localhost:15672 |
 | Mailpit (emails de prueba) | http://localhost:8025 |
+
+## Solución de problemas
+
+| Síntoma | Causa y solución |
+|---|---|
+| `P1001: Can't reach database server` | Docker Desktop no está abierto, o el contenedor no está arriba. Ejecutar `npm run infra:up` y verificar con `docker ps` que `estudioya-postgres` esté `healthy`. En Windows, usar `127.0.0.1` y el puerto **5433** en `DATABASE_URL` (ver [ARCHITECTURE §3](docs/ARCHITECTURE.md#3-puertos-y-servicios)). |
+| `npm error code 130` al migrar | El comando fue interrumpido (Prisma estaba esperando una respuesta). Ver el mensaje anterior al error: suele ser una pregunta de confirmación. |
+| `The migration ... was modified after it was applied` | Solo en desarrollo: `cd apps/api` y `npx dotenv -e ../../.env -- prisma migrate reset` (borra los datos locales). |
+| Prisma sigue usando `localhost:5432` | No lee el `.env`. Verificar que se llame exactamente `.env` (no `.env.txt`) y esté junto al `package.json` raíz. |
 
 ## Scripts útiles
 
@@ -86,7 +99,8 @@ npm run dev:web               # Web en http://localhost:3000
 ## Roadmap
 
 - [x] **Fase 0 · Fundaciones**: decisiones de producto y stack, estructura del monorepo, esquema de base, Docker, documentación inicial
-- [ ] **Fase 0 · Pendiente**: instalar dependencias y verificar build, primera migración, CI en verde, mockups
+- [x] **Fase 0 · Entorno local**: dependencias instaladas, infraestructura Docker levantada, primera migración (`init`) aplicada con sus restricciones
+- [ ] **Fase 0 · Pendiente**: repositorio en GitHub con `main` protegida, CI en verde, definir rango de precios y reglas "por confirmar", mockups
 - [ ] **Fase 1 · MVP**: registro/login/logout, perfil de profesor, facultades y materias con filtros, disponibilidad, reserva individual
 - [ ] **Fase 2**: pagos con comisión (Mercado Pago), clases grupales, reseñas y ranking
 - [ ] **Fase 3**: chat con moderación, FAQ, soporte, alta de profesores con verificación, panel admin
@@ -108,3 +122,4 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). Resumen: ramas cortas desde `main`, Pull
 | Fecha | Cambio |
 |---|---|
 | 2026-11-02 | Estructura inicial del monorepo, esquema de base de datos, Docker Compose, documentación de arquitectura |
+| 2026-11-17 | Primera migración `init` aplicada. PostgreSQL pasa al puerto 5433 del host y `DATABASE_URL` usa `127.0.0.1` (problema `P1001` en Windows/WSL). Agregada sección de solución de problemas. Recursos gráficos (logos y banners) en `apps/web/public/` |
