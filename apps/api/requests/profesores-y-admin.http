@@ -1,0 +1,143 @@
+# Flujo completo de alta de profesores. Extensión "REST Client" de VS Code.
+#
+# ANTES: en el .env definir SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD y correr `npm run db:seed`.
+# Cada bloque usa la cookie de la ÚLTIMA sesión iniciada: primero se actúa como el aspirante
+# (pasos 1 a 6) y después se inicia sesión como admin (pasos 7 a 11).
+#
+# Para subir archivos poné dos PDF de prueba en esta carpeta (apps/api/requests/):
+#   regular.pdf y materias.pdf  (cualquier PDF sirve; para probar el título, usá titulo.pdf)
+
+@baseUrl = http://localhost:4000/api/v1
+
+### 0. Ver ids de facultades y materias (copiar los ids a los pasos de abajo)
+GET {{baseUrl}}/faculties
+
+###
+GET {{baseUrl}}/subjects?pageSize=50
+
+### 1. Registrar al aspirante
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "email": "profe@ejemplo.com",
+  "password": "una-clave-larga-123",
+  "firstName": "Pablo",
+  "lastName": "Gómez",
+  "isAdultDeclaration": true,
+  "acceptTerms": true
+}
+
+### 2. Login del aspirante (si ya estaba registrado)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{ "email": "profe@ejemplo.com", "password": "una-clave-larga-123" }
+
+### 3. Crear/actualizar la solicitud (REEMPLAZAR los ids). Precios en CENTAVOS: 1200000 = $12.000
+# Rangos provisorios por hora: individual $8.000–$25.000 · grupal (por alumno) $4.000–$15.000
+PUT {{baseUrl}}/teacher-applications/me
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "type": "ADVANCED_STUDENT",
+  "facultyId": "REEMPLAZAR-ID-FACULTAD",
+  "careerName": "Ingeniería en Sistemas",
+  "bio": "Cursando 4to año. Doy apoyo en análisis matemático y programación desde hace 2 años.",
+  "subjects": [
+    {
+      "subjectId": "REEMPLAZAR-ID-MATERIA",
+      "individualPriceCents": 1200000,
+      "groupPriceCents": 700000
+    }
+  ]
+}
+
+### 4a. Subir certificado de alumno regular
+POST {{baseUrl}}/teacher-applications/me/documents
+X-Requested-With: estudioya
+Content-Type: multipart/form-data; boundary=----EstudioYA
+
+------EstudioYA
+Content-Disposition: form-data; name="kind"
+
+STUDENT_CERTIFICATE
+------EstudioYA
+Content-Disposition: form-data; name="file"; filename="regular.pdf"
+Content-Type: application/pdf
+
+< ./regular.pdf
+------EstudioYA--
+
+### 4b. Subir certificado de materias aprobadas
+POST {{baseUrl}}/teacher-applications/me/documents
+X-Requested-With: estudioya
+Content-Type: multipart/form-data; boundary=----EstudioYA
+
+------EstudioYA
+Content-Disposition: form-data; name="kind"
+
+APPROVED_SUBJECTS_CERTIFICATE
+------EstudioYA
+Content-Disposition: form-data; name="file"; filename="materias.pdf"
+Content-Type: application/pdf
+
+< ./materias.pdf
+------EstudioYA--
+
+### 5. Ver el estado de mi solicitud (missingDocuments debe quedar vacío)
+GET {{baseUrl}}/teacher-applications/me
+
+### 6. Enviar a revisión (si faltan documentos responde 422 con el detalle)
+POST {{baseUrl}}/teacher-applications/me/submit
+X-Requested-With: estudioya
+
+### 7. Login como ADMIN (usar el email y la clave de SEED_ADMIN_* del .env)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{ "email": "REEMPLAZAR-EMAIL-ADMIN", "password": "REEMPLAZAR-CLAVE-ADMIN" }
+
+### 8. Solicitudes pendientes
+GET {{baseUrl}}/admin/teacher-applications?status=PENDING
+
+### 9. Detalle de una solicitud (REEMPLAZAR el id)
+GET {{baseUrl}}/admin/teacher-applications/REEMPLAZAR-ID-SOLICITUD
+
+### 10. Descargar un documento (REEMPLAZAR ids)
+GET {{baseUrl}}/admin/teacher-applications/REEMPLAZAR-ID-SOLICITUD/documents/REEMPLAZAR-ID-DOCUMENTO
+
+### 11a. Aprobar (el usuario pasa a ser TEACHER)
+POST {{baseUrl}}/admin/teacher-applications/REEMPLAZAR-ID-SOLICITUD/approve
+X-Requested-With: estudioya
+
+### 11b. Rechazar con motivo (el aspirante puede corregir y reenviar)
+POST {{baseUrl}}/admin/teacher-applications/REEMPLAZAR-ID-SOLICITUD/reject
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{ "reason": "El certificado de materias aprobadas está ilegible." }
+
+###########################################################
+# Errores esperados (probar con el aspirante logueado)
+###########################################################
+
+### Precio fuera de rango → 422 PRICE_OUT_OF_RANGE
+PUT {{baseUrl}}/teacher-applications/me
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "type": "ADVANCED_STUDENT",
+  "facultyId": "REEMPLAZAR-ID-FACULTAD",
+  "careerName": "Ingeniería en Sistemas",
+  "bio": "Cursando 4to año. Doy apoyo en análisis matemático y programación desde hace 2 años.",
+  "subjects": [{ "subjectId": "REEMPLAZAR-ID-MATERIA", "individualPriceCents": 100 }]
+}
+
+### Un alumno no puede entrar al panel admin → 403 FORBIDDEN
+GET {{baseUrl}}/admin/teacher-applications

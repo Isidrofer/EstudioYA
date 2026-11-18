@@ -63,7 +63,8 @@ Una reserva `PENDING_PAYMENT` vencida pasa a `EXPIRED` por el job `bookings.expi
 ## Estados
 
 - **Reserva:** `PENDING_PAYMENT → CONFIRMED → COMPLETED`; también `CANCELLED` (desde cualquiera previa) y `EXPIRED` (solo desde `PENDING_PAYMENT`).
-- **Profesor:** `PENDING → APPROVED | REJECTED`; `APPROVED ↔ SUSPENDED`.
+- **Profesor (solicitud):** `DRAFT → PENDING → APPROVED | REJECTED`. Una solicitud `REJECTED` vuelve a `DRAFT` cuando el aspirante la corrige. `APPROVED ↔ SUSPENDED`.
+- **Documentación obligatoria:** estudiante avanzado = `STUDENT_CERTIFICATE` + `APPROVED_SUBJECTS_CERTIFICATE`; graduado = `DEGREE` (regla en `packages/shared/src/teacher-rules.ts`).
 - **Mensaje:** `VISIBLE | FLAGGED` (visible pero revisable) `| BLOCKED` (no se entrega).
 
 ## Configuración editable (`platform_settings`)
@@ -84,6 +85,7 @@ Ver [CONTRIBUTING.md](../CONTRIBUTING.md#migraciones-de-base-de-datos). Procedim
 | Migración | Fecha | Contenido |
 |---|---|---|
 | `init` | 2026-11-17 | Todas las tablas del esquema + restricciones de `sql/001_constraints.sql` (EXCLUDE, CHECK, índices parciales) |
+| `add_teacher_application_flow` | 2026-11-18 | `TeacherStatus.DRAFT`; `DocumentKind.APPROVED_SUBJECTS_CERTIFICATE`; `teacher_profiles.status` sin valor por defecto; `verification_documents` suma `originalName`, `mimeType` y `sizeBytes` |
 
 **Datos de prueba:** `npm run db:seed` carga facultades y materias de ejemplo (`apps/api/prisma/seed.ts`). Es idempotente (upsert por `slug`). Hay que reemplazar el contenido por el de la universidad real antes de lanzar.
 

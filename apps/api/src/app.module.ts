@@ -3,13 +3,15 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health/health.controller';
+import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { TeachersModule } from './modules/teachers/teachers.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 /**
  * Módulo raíz. Los módulos de dominio viven en src/modules/.
- * Pendientes: users, teachers, availability, bookings, payments, chat, reviews, support, admin.
+ * Pendientes: users, availability, bookings, payments, chat, reviews, support.
  * Ver docs/ARCHITECTURE.md, sección 4.
  */
 @Module({
@@ -20,6 +22,8 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     AuthModule,
     CatalogModule,
+    TeachersModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
