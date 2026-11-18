@@ -88,15 +88,15 @@ Cada módulo vive en `apps/api/src/modules/<nombre>/` con su controller, service
 | `auth` | Registro, login, logout, refresh, `me`, guards y roles (Google: pendiente) | ✅ |
 | `users` | Perfil del usuario | ⬜ |
 | `catalog` | Facultades y materias | ✅ |
-| `teachers` | Solicitud de alta de profesor (datos, materias y precios, certificados) 🟨. Pendiente: perfil público, búsqueda y ranking | 🟨 |
-| `storage` | Almacenamiento privado de archivos (disco local en desarrollo) | 🟨 |
+| `teachers` | Solicitud de alta de profesor (datos, materias y precios, certificados). Pendiente: perfil público, búsqueda y ranking | ✅ |
+| `storage` | Almacenamiento privado de archivos (disco local en desarrollo) | ✅ |
 | `availability` | Slots de disponibilidad del profesor | ⬜ |
 | `bookings` | Reservas, cupos, cancelaciones, vencimiento de holds | ⬜ |
 | `payments` | Checkout, OAuth de Mercado Pago, webhooks, reembolsos, payouts | ⬜ |
 | `chat` | Conversaciones, mensajes, moderación, reportes | ⬜ |
 | `reviews` | Reseñas y recálculo de puntaje | ⬜ |
 | `support` | FAQ y tickets de contacto | ⬜ |
-| `admin` | Revisión manual de solicitudes de profesores 🟨. Pendiente: configuración, soporte, moderación | 🟨 |
+| `admin` | Revisión manual de solicitudes de profesores. Pendiente: configuración, soporte, moderación | ✅ |
 | `messaging` | Publicador del outbox y consumers de RabbitMQ (transversal) | ⬜ |
 
 **Regla de dependencias:** un módulo usa a otro solo a través de su `Service` exportado o de eventos. Nunca consulta directamente las tablas de otro módulo.
@@ -243,11 +243,11 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| PUT | `/teacher-applications/me` | U | Crea o reemplaza la solicitud (`teacherApplicationSchema`): tipo, facultad, carrera, bio y materias con precios. Solo en `DRAFT` o `REJECTED` (si no, `409`). Precio fuera de rango: `422 PRICE_OUT_OF_RANGE` | 🟨 |
-| GET | `/teacher-applications/me` | U | Estado de la solicitud, documentos subidos y `missingDocuments`. `404` si no inició una | 🟨 |
-| POST | `/teacher-applications/me/documents` | U | Sube un archivo (`multipart/form-data`: `kind` + `file`). Un archivo por tipo: el nuevo reemplaza al anterior. Devuelve `201` | 🟨 |
-| DELETE | `/teacher-applications/me/documents/:documentId` | U | Borra un documento (`204`) | 🟨 |
-| POST | `/teacher-applications/me/submit` | U | Envía a revisión (`PENDING`). Si falta documentación: `422` con el detalle | 🟨 |
+| PUT | `/teacher-applications/me` | U | Crea o reemplaza la solicitud (`teacherApplicationSchema`): tipo, facultad, carrera, bio y materias con precios. Solo en `DRAFT` o `REJECTED` (si no, `409`). Precio fuera de rango: `422 PRICE_OUT_OF_RANGE` | ✅ |
+| GET | `/teacher-applications/me` | U | Estado de la solicitud, documentos subidos y `missingDocuments`. `404` si no inició una | ✅ |
+| POST | `/teacher-applications/me/documents` | U | Sube un archivo (`multipart/form-data`: `kind` + `file`). Un archivo por tipo: el nuevo reemplaza al anterior. Devuelve `201` | ✅ |
+| DELETE | `/teacher-applications/me/documents/:documentId` | U | Borra un documento (`204`) | ✅ |
+| POST | `/teacher-applications/me/submit` | U | Envía a revisión (`PENDING`). Si falta documentación: `422` con el detalle | ✅ |
 
 ### Reservas y pagos
 
@@ -286,11 +286,11 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| GET | `/admin/teacher-applications?status=&page=&pageSize=` | A | Solicitudes por estado (por defecto `PENDING`), las más antiguas primero | 🟨 |
-| GET | `/admin/teacher-applications/:applicationId` | A | Detalle: datos del aspirante, materias y documentos | 🟨 |
-| GET | `/admin/teacher-applications/:applicationId/documents/:documentId` | A | Descarga un documento | 🟨 |
-| POST | `/admin/teacher-applications/:applicationId/approve` | A | Aprueba (solo desde `PENDING`): el usuario pasa a `TEACHER` y se registra el evento `teacher.approved` en el outbox | 🟨 |
-| POST | `/admin/teacher-applications/:applicationId/reject` | A | Rechaza con `{ reason }` (solo desde `PENDING`) | 🟨 |
+| GET | `/admin/teacher-applications?status=&page=&pageSize=` | A | Solicitudes por estado (por defecto `PENDING`), las más antiguas primero | ✅ |
+| GET | `/admin/teacher-applications/:applicationId` | A | Detalle: datos del aspirante, materias y documentos | ✅ |
+| GET | `/admin/teacher-applications/:applicationId/documents/:documentId` | A | Descarga un documento | ✅ |
+| POST | `/admin/teacher-applications/:applicationId/approve` | A | Aprueba (solo desde `PENDING`): el usuario pasa a `TEACHER` y se registra el evento `teacher.approved` en el outbox | ✅ |
+| POST | `/admin/teacher-applications/:applicationId/reject` | A | Rechaza con `{ reason }` (solo desde `PENDING`) | ✅ |
 | GET · PUT | `/admin/settings` | A | Lee / edita `platform_settings` (rangos de precio) | ⬜ |
 | GET · PATCH | `/admin/support/tickets` | A | Gestión de tickets | ⬜ |
 | GET | `/admin/reported-messages` | A | Mensajes reportados o marcados | ⬜ |

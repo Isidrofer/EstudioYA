@@ -116,8 +116,8 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
 - [x] **Fase 0 · Entorno local**: dependencias instaladas, infraestructura Docker levantada, primera migración (`init`) aplicada con sus restricciones
 - [ ] **Fase 0 · Pendiente**: repositorio en GitHub con `main` protegida, CI en verde, definir rango de precios y reglas "por confirmar", mockups
 - [ ] **Fase 1 · MVP**
-  - [x] Backend: conexión a la base, datos de prueba, registro/login/logout/refresh/me, catálogo de facultades y materias *(código escrito, pendiente de verificar en local)*
-  - [x] Backend: solicitud de alta de profesor (datos, materias con precios, certificados) y revisión manual del admin *(código escrito, pendiente de verificar en local)*
+  - [x] Backend: conexión a la base, datos de prueba, registro/login/logout/refresh/me, catálogo de facultades y materias
+  - [x] Backend: solicitud de alta de profesor (datos, materias con precios, certificados) y revisión manual del admin
   - [ ] Backend: disponibilidad semanal del profesor y generación de horarios reservables
   - [ ] Backend: perfil público y búsqueda de profesores con filtros, reserva individual
   - [ ] Frontend: inicio, login, registro, búsqueda
@@ -134,13 +134,13 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
 
 ## Cómo trabajamos
 
-Ver [CONTRIBUTING.md](CONTRIBUTING.md). Resumen: ramas cortas desde `main`, Pull Requests con al menos una revisión, CI en verde antes de mergear, y **actualizar este README y la documentación en el mismo PR** que cambie el comportamiento.
+Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y dependencias, está en **[docs/BACKLOG.md](docs/BACKLOG.md)**. Resumen: ramas cortas desde `main`, Pull Requests con al menos una revisión, CI en verde antes de mergear, y **actualizar este README y la documentación en el mismo PR** que cambie el comportamiento.
 
 ## Changelog
 
 | Fecha | Cambio |
 |---|---|
 | 2026-11-02 | Estructura inicial del monorepo, esquema de base de datos, Docker Compose, documentación de arquitectura |
-| 2026-11-18 | Alta de profesores: `PUT /teacher-applications/me`, subida de certificados (PDF/JPG/PNG, 5 MB), envío a revisión y panel admin (listar, ver, descargar documentos, aprobar, rechazar). Rango de precios provisorio hardcodeado. Migración `add_teacher_application_flow`. El seed puede crear el primer admin (`SEED_ADMIN_*`) |
+| 2026-11-18 | Se agrega `docs/BACKLOG.md` (trabajo pendiente priorizado). Alta de profesores: `PUT /teacher-applications/me`, subida de certificados (PDF/JPG/PNG, 5 MB), envío a revisión y panel admin (listar, ver, descargar documentos, aprobar, rechazar). Rango de precios provisorio hardcodeado. Migración `add_teacher_application_flow`. El seed puede crear el primer admin (`SEED_ADMIN_*`) |
 | 2026-11-18 | Backend base: `PrismaService`, seed de facultades y materias, módulo `auth` (registro, login, logout, refresh con rotación, `me`, guards de sesión y roles), módulo `catalog`, errores `problem+json`, protección CSRF por header, límite de tasa, `.http` de pruebas. Todo usuario nuevo es `STUDENT` |
 | 2026-11-17 | Primera migración `init` aplicada. PostgreSQL pasa al puerto 5433 del host y `DATABASE_URL` usa `127.0.0.1` (problema `P1001` en Windows/WSL). Agregada sección de solución de problemas. Recursos gráficos (logos y banners) en `apps/web/public/` |
