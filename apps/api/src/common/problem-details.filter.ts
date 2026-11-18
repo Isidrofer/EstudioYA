@@ -10,6 +10,7 @@ const BY_STATUS: Record<number, { code: ErrorCode; title: string }> = {
   403: { code: 'FORBIDDEN', title: 'No tenés permiso para esta acción' },
   404: { code: 'NOT_FOUND', title: 'Recurso no encontrado' },
   409: { code: 'CONFLICT', title: 'Conflicto con el estado actual' },
+  413: { code: 'VALIDATION_ERROR', title: 'El archivo es demasiado grande' },
   429: { code: 'RATE_LIMITED', title: 'Demasiadas solicitudes' },
 };
 

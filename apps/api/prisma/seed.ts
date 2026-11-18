@@ -6,6 +6,7 @@
  * Ejecutar: npm run db:seed
  */
 import { PrismaClient } from '@prisma/client';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
@@ -67,6 +68,43 @@ async function main() {
 
   // eslint-disable-next-line no-console
   console.log(`Seed listo: ${Object.keys(CATALOG).length} facultades, ${subjectCount} materias.`);
+
+  await seedAdmin();
+}
+
+/**
+ * Crea (una sola vez) el primer administrador si SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD están
+ * definidos en el .env. Si el usuario ya existe, solo se asegura de que tenga rol ADMIN y NO
+ * cambia su contraseña. En producción el admin se crea a mano, nunca con este seed.
+ */
+async function seedAdmin() {
+  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+  if (!email || !password) {
+    // eslint-disable-next-line no-console
+    console.log('Admin: no se creó (definí SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD en el .env).');
+    return;
+  }
+  if (password.length < 10) throw new Error('SEED_ADMIN_PASSWORD debe tener al menos 10 caracteres.');
+
+  const now = new Date();
+  const admin = await prisma.user.upsert({
+    where: { email },
+    update: { role: 'ADMIN' },
+    create: {
+      email,
+      passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+      firstName: 'Admin',
+      lastName: 'EstudioYA',
+      role: 'ADMIN',
+      emailVerifiedAt: now,
+      adultDeclaredAt: now,
+      termsAcceptedAt: now,
+      termsVersion: 'seed',
+    },
+  });
+  // eslint-disable-next-line no-console
+  console.log(`Admin listo: ${admin.email}`);
 }
 
 main()

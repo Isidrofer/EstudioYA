@@ -1,7 +1,7 @@
 # Arquitectura de EstudioYA
 
 > Documento vivo. Se actualiza en el mismo PR que cambia endpoints, puertos, contratos o reglas.
-> Última actualización: 2026-11-17 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
+> Última actualización: 2026-11-18 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
 
 ## Índice
 
@@ -55,7 +55,7 @@ flowchart LR
 | Mensajería | RabbitMQ | 3.13 | Local en Docker |
 | Pagos | Mercado Pago Marketplace | — | Split de pagos, OAuth de vendedores |
 | Email | SMTP (Mailpit en dev; Resend o SES en prod) | — | |
-| Archivos | S3-compatible (Cloudflare R2 previsto) | — | Bucket **privado** |
+| Archivos | Disco local en desarrollo (`StorageService`); S3-compatible (Cloudflare R2) previsto para producción | — | Almacenamiento **privado**; el código no cambia al migrar |
 | Tiempo real | Socket.IO sobre el gateway de NestJS | — | |
 | CI | GitHub Actions | — | `.github/workflows/ci.yml` |
 
@@ -88,14 +88,15 @@ Cada módulo vive en `apps/api/src/modules/<nombre>/` con su controller, service
 | `auth` | Registro, login, logout, refresh, `me`, guards y roles (Google: pendiente) | ✅ |
 | `users` | Perfil del usuario | ⬜ |
 | `catalog` | Facultades y materias | ✅ |
-| `teachers` | Perfiles, materias y precios, búsqueda y ranking, solicitudes de alta | ⬜ |
+| `teachers` | Solicitud de alta de profesor (datos, materias y precios, certificados) 🟨. Pendiente: perfil público, búsqueda y ranking | 🟨 |
+| `storage` | Almacenamiento privado de archivos (disco local en desarrollo) | 🟨 |
 | `availability` | Slots de disponibilidad del profesor | ⬜ |
 | `bookings` | Reservas, cupos, cancelaciones, vencimiento de holds | ⬜ |
 | `payments` | Checkout, OAuth de Mercado Pago, webhooks, reembolsos, payouts | ⬜ |
 | `chat` | Conversaciones, mensajes, moderación, reportes | ⬜ |
 | `reviews` | Reseñas y recálculo de puntaje | ⬜ |
 | `support` | FAQ y tickets de contacto | ⬜ |
-| `admin` | Verificación de profesores, configuración, moderación | ⬜ |
+| `admin` | Revisión manual de solicitudes de profesores 🟨. Pendiente: configuración, soporte, moderación | 🟨 |
 | `messaging` | Publicador del outbox y consumers de RabbitMQ (transversal) | ⬜ |
 
 **Regla de dependencias:** un módulo usa a otro solo a través de su `Service` exportado o de eventos. Nunca consulta directamente las tablas de otro módulo.
@@ -108,8 +109,8 @@ Las marcadas **(por confirmar)** son una propuesta inicial que el equipo debe va
 |---|---|---|
 | BR-01 | Comisión de la plataforma: **35 %** (`3500` bps) del precio cobrado. `commissionCents = round(amountCents × 0.35)` (half-up) y `teacherNetCents = amountCents − commissionCents`. Se congela en cada reserva. Implementado en `splitAmount()` de `packages/shared`. | Confirmada |
 | BR-02 | Se cobra **por hora**. Importe de la reserva = `round(priceCents × duraciónEnMinutos / 60)`, donde `priceCents` es el precio por hora **por alumno** del slot. | Confirmada |
-| BR-03 | El profesor fija su precio por materia y tipo de clase dentro del rango de `platform_settings` (`pricing.individual`, `pricing.group`). Se valida al guardar el precio y al crear un slot. Un cambio de rango no afecta slots ni reservas existentes. | Confirmada (valores del rango por definir) |
-| BR-04 | El precio grupal por alumno debe ser **menor** que el precio individual de la misma materia y profesor. | (por confirmar) |
+| BR-03 | El profesor fija su precio por materia y tipo de clase dentro de un rango. **Hoy el rango está hardcodeado y es PROVISORIO** (`PRICE_RANGE_CENTS` en `packages/shared/src/teacher-rules.ts`): individual $8.000–$25.000 por hora; grupal $4.000–$15.000 por hora **por alumno**. Antes de producción se mueve a `platform_settings` (editable por el admin) con los valores definitivos. Se valida al guardar la solicitud (`422 PRICE_OUT_OF_RANGE`) y se validará al crear slots. Un cambio de rango no afecta slots ni reservas existentes. | Confirmada (valores provisorios) |
+| BR-04 | El precio grupal por alumno debe ser **menor** que el precio individual de la misma materia y profesor. Ya se valida en la solicitud (`422`); si el equipo decide no exigirlo, se quita de `teacher-applications.service.ts`. | (por confirmar) |
 | BR-05 | Clase individual: cupo 1. Clase grupal: `minStudents` y `maxStudents` los define el profesor al crear el slot. | Confirmada |
 | BR-06 | Al reservar se retiene el cupo **10 minutos** (`PENDING_PAYMENT`). Si no se paga, pasa a `EXPIRED` y libera el cupo. | (por confirmar) |
 | BR-07 | No se permiten solapamientos: ni dos slots abiertos de un profesor, ni dos reservas activas de un alumno. Lo garantiza la base de datos. | Confirmada |
@@ -117,6 +118,7 @@ Las marcadas **(por confirmar)** son una propuesta inicial que el equipo debe va
 | BR-09 | Una reserva pasa a `COMPLETED` cuando termina el horario del slot y no hay reclamo abierto. | (por confirmar) |
 | BR-10 | **Ranking de recomendados:** `score = bayes × (1 + w·min(1, horas90d / H)) × (1 − cancelRate)`, con `bayes = (v/(v+m))·R + (m/(v+m))·C` (R = promedio del profesor, v = reseñas, C = promedio global, m = mínimo de reseñas). Parámetros iniciales: `m = 5`, `w = 0.2`, `H = 20 h`. Se recalcula en el job `ratings.recalculate` y se guarda en `teacher_profiles.rankingScore`. | (parámetros por ajustar) |
 | BR-11 | Un profesor solo aparece en búsquedas si está `APPROVED`. Para recibir reservas pagas debe tener la cuenta de Mercado Pago vinculada. | Confirmada |
+| BR-18 | **Alta de profesores.** Flujo: el usuario se registra (alumno) → completa su solicitud (`DRAFT`: tipo, facultad, carrera, bio, materias con precios) → sube la documentación → la envía (`PENDING`) → un admin la revisa **manualmente** → `APPROVED` (el usuario pasa a `TEACHER`) o `REJECTED` con motivo (puede corregir y reenviar). Documentación obligatoria: *estudiante avanzado* = certificado de alumno regular **y** certificado de materias aprobadas; *graduado* = título. Archivos PDF, JPG o PNG, máx. 5 MB, validados por contenido (no por extensión). Solo el admin puede descargarlos. | Confirmada |
 | BR-12 | El pago al profesor se libera **24 h después** de completada la clase si no hay reclamo (ver riesgo R-01). | (por confirmar) |
 | BR-13 | Política de cancelación: el alumno cancela sin costo hasta **24 h antes** (reembolso total); después, sin reembolso. Si cancela el profesor, reembolso total al alumno. Si una grupal no llega a `minStudents` a las 24 h previas, se cancela y se reembolsa. | (por confirmar) |
 | BR-14 | Chat: solo entre alumno y profesor, habilitado al existir una reserva entre ambos. Se bloquean teléfonos, emails, links y menciones a canales de contacto externos (evitar eludir la comisión). Insultos: el mensaje se bloquea. Todo mensaje bloqueado o marcado queda registrado. | (por confirmar) |
@@ -186,12 +188,12 @@ Validación (`400`): igual, con `code: "VALIDATION_ERROR"` y `errors: [{ "field"
 ### Límites
 
 22. Límite de tasa por IP y usuario: login y registro 10/min; resto 120/min; mensajes de chat 30/min. Exceso ⇒ `429` con `Retry-After`.
-23. Tamaño máximo de body JSON: 100 KB. Documentos de verificación: PDF/JPG/PNG, máx. 5 MB, por carga firmada directa al almacenamiento.
+23. Tamaño máximo de body JSON: 100 KB. Documentos de verificación: PDF/JPG/PNG, máx. 5 MB, subidos como `multipart/form-data` a la API (que valida el contenido y los guarda en el almacenamiento privado). Excederlo devuelve `413`.
 
 ## 7. Endpoints REST
 
-> **Estado 🟨 = código escrito, pendiente de verificar en local.** Pasa a ✅ cuando se probó con `apps/api/requests/auth-y-catalogo.http`.
-> Ejemplos listos para ejecutar: [`apps/api/requests/auth-y-catalogo.http`](../apps/api/requests/auth-y-catalogo.http) (extensión *REST Client* de VS Code).
+> **🟨 = código escrito, pendiente de verificar en local.** Pasa a ✅ cuando se probó con los archivos `.http` de `apps/api/requests/`.
+> Ejemplos listos para ejecutar: [`auth-y-catalogo.http`](../apps/api/requests/auth-y-catalogo.http) y [`profesores-y-admin.http`](../apps/api/requests/profesores-y-admin.http) (extensión *REST Client* de VS Code).
 
 Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profesor aprobado · **A** admin · **U** cualquier usuario autenticado.
 
@@ -205,20 +207,20 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| POST | `/auth/register` | P | Alta de usuario. **Siempre como `STUDENT`**; para ser profesor se usa `/teacher-applications`. Devuelve `201` con el usuario y deja la sesión iniciada (`registerSchema`). Email repetido: `409 CONFLICT`. Límite: 10/min | 🟨 |
-| POST | `/auth/login` | P | Inicia sesión y setea cookies (`loginSchema`). Credenciales inválidas: `401` genérico. Límite: 10/min | 🟨 |
-| POST | `/auth/logout` | P | Revoca el refresh token y limpia cookies (`204`). Funciona aunque la sesión haya vencido | 🟨 |
-| POST | `/auth/refresh` | P (cookie) | Rota el refresh token (`204` + cookies nuevas). Si se reusa un token ya rotado se revocan todas las sesiones del usuario | 🟨 |
+| POST | `/auth/register` | P | Alta de usuario. **Siempre como `STUDENT`**; para ser profesor se usa `/teacher-applications`. Devuelve `201` con el usuario y deja la sesión iniciada (`registerSchema`). Email repetido: `409 CONFLICT`. Límite: 10/min | ✅ |
+| POST | `/auth/login` | P | Inicia sesión y setea cookies (`loginSchema`). Credenciales inválidas: `401` genérico. Límite: 10/min | ✅ |
+| POST | `/auth/logout` | P | Revoca el refresh token y limpia cookies (`204`). Funciona aunque la sesión haya vencido | ✅ |
+| POST | `/auth/refresh` | P (cookie) | Rota el refresh token (`204` + cookies nuevas). Si se reusa un token ya rotado se revocan todas las sesiones del usuario | ✅ |
 | GET | `/auth/google` · `/auth/google/callback` | P | Login con Google | ⬜ |
-| GET | `/auth/me` | U | Usuario autenticado | 🟨 |
+| GET | `/auth/me` | U | Usuario autenticado | ✅ |
 
 ### Catálogo
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| GET | `/faculties` | P | Lista de facultades (`FacultyDto[]`, sin paginar: catálogo corto) | 🟨 |
-| GET | `/faculties/:facultyId/subjects` | P | Materias de una facultad (`SubjectDto[]`). Facultad inexistente: `404` | 🟨 |
-| GET | `/subjects?q=&facultyId=&page=&pageSize=` | P | Búsqueda de materias por nombre, paginada (`Paginated<SubjectDto>`) | 🟨 |
+| GET | `/faculties` | P | Lista de facultades (`FacultyDto[]`, sin paginar: catálogo corto) | ✅ |
+| GET | `/faculties/:facultyId/subjects` | P | Materias de una facultad (`SubjectDto[]`). Facultad inexistente: `404` | ✅ |
+| GET | `/subjects?q=&facultyId=&page=&pageSize=` | P | Búsqueda de materias por nombre, paginada (`Paginated<SubjectDto>`) | ✅ |
 
 ### Profesores
 
@@ -241,9 +243,11 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| POST | `/teacher-applications` | U | Solicita ser profesor (tipo, carrera, bio) | ⬜ |
-| POST | `/teacher-applications/documents/upload-url` | U | URL firmada para subir documentación | ⬜ |
-| GET | `/teacher-applications/me` | U | Estado de la solicitud | ⬜ |
+| PUT | `/teacher-applications/me` | U | Crea o reemplaza la solicitud (`teacherApplicationSchema`): tipo, facultad, carrera, bio y materias con precios. Solo en `DRAFT` o `REJECTED` (si no, `409`). Precio fuera de rango: `422 PRICE_OUT_OF_RANGE` | 🟨 |
+| GET | `/teacher-applications/me` | U | Estado de la solicitud, documentos subidos y `missingDocuments`. `404` si no inició una | 🟨 |
+| POST | `/teacher-applications/me/documents` | U | Sube un archivo (`multipart/form-data`: `kind` + `file`). Un archivo por tipo: el nuevo reemplaza al anterior. Devuelve `201` | 🟨 |
+| DELETE | `/teacher-applications/me/documents/:documentId` | U | Borra un documento (`204`) | 🟨 |
+| POST | `/teacher-applications/me/submit` | U | Envía a revisión (`PENDING`). Si falta documentación: `422` con el detalle | 🟨 |
 
 ### Reservas y pagos
 
@@ -282,9 +286,11 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| GET | `/admin/teacher-applications?status=` | A | Solicitudes pendientes | ⬜ |
-| POST | `/admin/teacher-applications/:id/approve` | A | Aprueba | ⬜ |
-| POST | `/admin/teacher-applications/:id/reject` | A | Rechaza con motivo | ⬜ |
+| GET | `/admin/teacher-applications?status=&page=&pageSize=` | A | Solicitudes por estado (por defecto `PENDING`), las más antiguas primero | 🟨 |
+| GET | `/admin/teacher-applications/:applicationId` | A | Detalle: datos del aspirante, materias y documentos | 🟨 |
+| GET | `/admin/teacher-applications/:applicationId/documents/:documentId` | A | Descarga un documento | 🟨 |
+| POST | `/admin/teacher-applications/:applicationId/approve` | A | Aprueba (solo desde `PENDING`): el usuario pasa a `TEACHER` y se registra el evento `teacher.approved` en el outbox | 🟨 |
+| POST | `/admin/teacher-applications/:applicationId/reject` | A | Rechaza con `{ reason }` (solo desde `PENDING`) | 🟨 |
 | GET · PUT | `/admin/settings` | A | Lee / edita `platform_settings` (rangos de precio) | ⬜ |
 | GET · PATCH | `/admin/support/tickets` | A | Gestión de tickets | ⬜ |
 | GET | `/admin/reported-messages` | A | Mensajes reportados o marcados | ⬜ |
@@ -371,7 +377,8 @@ Plantilla completa en [`.env.example`](../.env.example). Nunca se sube `.env`.
 - Pendientes de seguridad: verificación de email (`emailVerifiedAt` hoy queda en `null`), recuperación de contraseña, limpieza periódica de refresh tokens vencidos.
 - Tokens de Mercado Pago de los profesores **cifrados** en la base (AES-256-GCM, clave en `TOKEN_ENCRYPTION_KEY`).
 - Webhooks: validar firma `x-signature` y consultar el pago a la API de Mercado Pago antes de confiar en el payload.
-- Documentos de verificación en bucket privado; acceso solo por URL firmada de corta duración y solo para `ADMIN`.
+- Documentos de verificación en almacenamiento privado: nunca se sirven como archivos estáticos; solo los descarga un `ADMIN` autenticado a través de la API. El tipo se valida por el **contenido** del archivo (firma PDF/PNG/JPG), el nombre original se sanea y la ruta de guardado la genera el servidor (el usuario no la controla).
+- Al aprobar a un profesor, su access token sigue diciendo `STUDENT` hasta que se renueve (máx. 15 min); `GET /auth/me` y el refresh ya devuelven el rol actualizado.
 - Cabeceras de seguridad (helmet), CORS restringido, límite de tasa (§6.22), validación de toda entrada con Zod.
 - Logs sin datos sensibles (sin contraseñas, tokens ni contenido de documentos).
 - Auditoría: registrar acciones de admin (aprobaciones, cambios de configuración).
@@ -382,10 +389,10 @@ Plantilla completa en [`.env.example`](../.env.example). Nunca se sube `.env`.
 
 | # | Tema | Propuesta actual | Quién decide |
 |---|---|---|---|
-| D-01 | Rango de precios por hora (individual y grupal) | Definir mínimo y máximo en ARS a partir de precios del mercado de clases particulares | Equipo |
+| D-01 | Rango de precios por hora (individual y grupal) | **Provisorio hardcodeado** (ver BR-03). Definir los valores finales y pasarlos a `platform_settings` antes de producción | Equipo |
 | D-02 | Reglas BR-04, BR-06, BR-09, BR-12, BR-13, BR-14 marcadas *(por confirmar)* | Las del texto | Equipo |
 | D-03 | Videollamada | Link externo (Meet/Jitsi) que pega el profesor en el slot | Equipo |
-| D-04 | Verificación de profesores | Revisión manual del certificado de alumno regular o título | Equipo |
+| D-04 | Verificación de profesores | **Resuelta:** revisión manual del admin (BR-18). Definir plazo de respuesta y criterios de rechazo | Equipo |
 | D-05 | Facturación y situación fiscal de profesores y de la plataforma | Consultar con un contador (ARCA, monotributo) | Contador |
 | D-06 | Términos y condiciones, privacidad (Ley 25.326), Defensa del Consumidor (botón de arrepentimiento) | Consultar con un abogado | Abogado |
 

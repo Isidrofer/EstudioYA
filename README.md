@@ -102,9 +102,13 @@ npm run dev:web               # Web en http://localhost:3000
 | `npm run db:migrate` | Crea/aplica migraciones de Prisma |
 | `npm run db:seed` | Carga datos de prueba (facultades y materias de ejemplo) |
 
+## Primer administrador
+
+Para revisar solicitudes de profesores hace falta un usuario `ADMIN`. En desarrollo, definí en tu `.env` `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD` (mínimo 10 caracteres) y ejecutá `npm run db:seed`. Si el usuario ya existe, solo se le asigna el rol y **no** se cambia su contraseña. En producción el admin se crea a mano.
+
 ## Probar la API a mano
 
-Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir [`apps/api/requests/auth-y-catalogo.http`](apps/api/requests/auth-y-catalogo.http) con la API corriendo y hacer clic en *Send Request* sobre cada bloque. Toda ruta que modifica datos necesita el header `X-Requested-With: estudioya` (ya incluido en los ejemplos).
+Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir los archivos de [`apps/api/requests/`](apps/api/requests/) (`auth-y-catalogo.http` y `profesores-y-admin.http`) con la API corriendo y hacer clic en *Send Request* sobre cada bloque. Toda ruta que modifica datos necesita el header `X-Requested-With: estudioya` (ya incluido en los ejemplos).
 
 ## Roadmap
 
@@ -113,7 +117,9 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir [
 - [ ] **Fase 0 · Pendiente**: repositorio en GitHub con `main` protegida, CI en verde, definir rango de precios y reglas "por confirmar", mockups
 - [ ] **Fase 1 · MVP**
   - [x] Backend: conexión a la base, datos de prueba, registro/login/logout/refresh/me, catálogo de facultades y materias *(código escrito, pendiente de verificar en local)*
-  - [ ] Backend: perfil de profesor, búsqueda de profesores con filtros, disponibilidad, reserva individual
+  - [x] Backend: solicitud de alta de profesor (datos, materias con precios, certificados) y revisión manual del admin *(código escrito, pendiente de verificar en local)*
+  - [ ] Backend: disponibilidad semanal del profesor y generación de horarios reservables
+  - [ ] Backend: perfil público y búsqueda de profesores con filtros, reserva individual
   - [ ] Frontend: inicio, login, registro, búsqueda
 - [ ] **Fase 2**: pagos con comisión (Mercado Pago), clases grupales, reseñas y ranking
 - [ ] **Fase 3**: chat con moderación, FAQ, soporte, alta de profesores con verificación, panel admin
@@ -135,5 +141,6 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). Resumen: ramas cortas desde `main`, Pull
 | Fecha | Cambio |
 |---|---|
 | 2026-11-02 | Estructura inicial del monorepo, esquema de base de datos, Docker Compose, documentación de arquitectura |
+| 2026-11-18 | Alta de profesores: `PUT /teacher-applications/me`, subida de certificados (PDF/JPG/PNG, 5 MB), envío a revisión y panel admin (listar, ver, descargar documentos, aprobar, rechazar). Rango de precios provisorio hardcodeado. Migración `add_teacher_application_flow`. El seed puede crear el primer admin (`SEED_ADMIN_*`) |
 | 2026-11-18 | Backend base: `PrismaService`, seed de facultades y materias, módulo `auth` (registro, login, logout, refresh con rotación, `me`, guards de sesión y roles), módulo `catalog`, errores `problem+json`, protección CSRF por header, límite de tasa, `.http` de pruebas. Todo usuario nuevo es `STUDENT` |
 | 2026-11-17 | Primera migración `init` aplicada. PostgreSQL pasa al puerto 5433 del host y `DATABASE_URL` usa `127.0.0.1` (problema `P1001` en Windows/WSL). Agregada sección de solución de problemas. Recursos gráficos (logos y banners) en `apps/web/public/` |

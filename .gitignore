@@ -10,3 +10,6 @@ coverage/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Archivos privados subidos en desarrollo
+apps/api/storage/
