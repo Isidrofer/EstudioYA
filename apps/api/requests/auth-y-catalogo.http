@@ -1,0 +1,67 @@
+# Pruebas manuales de la API. Requiere la extensión "REST Client" de VS Code (humao.rest-client).
+# Con la API corriendo (npm run dev:api), hacer clic en "Send Request" sobre cada bloque.
+# REST Client guarda las cookies entre pedidos, igual que un navegador.
+#
+# IMPORTANTE: toda ruta que modifica datos necesita el header X-Requested-With: estudioya
+
+@baseUrl = http://localhost:4000/api/v1
+
+### Salud
+GET {{baseUrl}}/health
+
+### Facultades
+GET {{baseUrl}}/faculties
+
+### Materias de una facultad (reemplazar el id por uno devuelto arriba)
+GET {{baseUrl}}/faculties/REEMPLAZAR-ID/subjects
+
+### Buscar materias
+GET {{baseUrl}}/subjects?q=fis&page=1&pageSize=10
+
+### Registro (se registra como alumno y deja la sesión iniciada)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "email": "alumno@ejemplo.com",
+  "password": "una-clave-larga-123",
+  "firstName": "Ana",
+  "lastName": "Pérez",
+  "isAdultDeclaration": true,
+  "acceptTerms": true
+}
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "email": "alumno@ejemplo.com",
+  "password": "una-clave-larga-123"
+}
+
+### Usuario de la sesión actual
+GET {{baseUrl}}/auth/me
+
+### Renovar sesión (devuelve 204 y cookies nuevas)
+POST {{baseUrl}}/auth/refresh
+X-Requested-With: estudioya
+
+### Logout (devuelve 204 y borra las cookies)
+POST {{baseUrl}}/auth/logout
+X-Requested-With: estudioya
+
+### Error esperado: falta el header de seguridad (403 FORBIDDEN)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "alumno@ejemplo.com", "password": "x" }
+
+### Error esperado: validación (400 VALIDATION_ERROR con detalle por campo)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{ "email": "no-es-un-email", "password": "corta", "firstName": "", "lastName": "", "isAdultDeclaration": false, "acceptTerms": false }

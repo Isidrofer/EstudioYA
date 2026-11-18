@@ -1,3 +1,4 @@
 export * from './constants';
 export * from './errors';
 export * from './schemas/auth';
+export * from './schemas/catalog';

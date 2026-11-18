@@ -8,6 +8,12 @@ export const CURRENCY = 'ARS' as const;
 /** Edad mínima para usar la plataforma. */
 export const MIN_AGE = 18;
 
+/**
+ * Versión vigente de los términos y condiciones. Se guarda en cada usuario al registrarse.
+ * BORRADOR hasta que un abogado revise los textos legales (ver ARCHITECTURE §12, D-06).
+ */
+export const CURRENT_TERMS_VERSION = '0.1-borrador';
+
 /** Minutos que se retiene un cupo mientras el alumno paga. */
 export const BOOKING_HOLD_MINUTES = 10;
 

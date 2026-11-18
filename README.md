@@ -3,7 +3,7 @@
 Plataforma de clases particulares **hecha por estudiantes, para estudiantes**. Un estudiante reserva una clase en el calendario de un profesor (estudiante avanzado o graduado), paga dentro de la app y después puntúa al profesor.
 
 > **Estado del proyecto:** Fase 0 (fundaciones). Ver el [roadmap](#roadmap) y el [CHANGELOG](#changelog).
-> Última actualización: 2026-11-17
+> Última actualización: 2026-11-18
 
 ## Características previstas
 
@@ -36,8 +36,12 @@ Modelo de datos: **[docs/DATABASE.md](docs/DATABASE.md)**.
 estudioya/
 ├── apps/
 │   ├── api/                 # Backend NestJS (monolito modular) + esquema Prisma
-│   │   ├── prisma/          #   schema.prisma y sql/001_constraints.sql
+│   │   ├── prisma/          #   schema.prisma, migrations/, seed.ts y sql/001_constraints.sql
+│   │   ├── requests/        #   Pruebas manuales (.http) para la extensión REST Client
 │   │   └── src/
+│   │       ├── common/      #     Errores RFC 7807, validación Zod, CSRF, utilidades
+│   │       ├── prisma/      #     Conexión a la base
+│   │       └── modules/     #     auth, catalog (y los que vengan)
 │   └── web/                 # Frontend Next.js
 │       └── public/          #   Recursos estáticos: logos/, banners/, favicon (se sirven desde "/")
 ├── packages/
@@ -65,6 +69,7 @@ npm run db:generate           # genera el cliente Prisma
 npm run db:migrate -- --create-only --name init
 #   → pegar apps/api/prisma/sql/001_constraints.sql al final de la migración creada
 npm run db:migrate            # aplica la migración
+npm run db:seed               # carga facultades y materias de ejemplo (se puede repetir sin duplicar)
 npm run dev:api               # API en http://localhost:4000/api/v1/health
 npm run dev:web               # Web en http://localhost:3000
 ```
@@ -95,13 +100,21 @@ npm run dev:web               # Web en http://localhost:3000
 | `npm run typecheck` | Verifica tipos en todo el monorepo |
 | `npm run db:validate` | Valida `schema.prisma` |
 | `npm run db:migrate` | Crea/aplica migraciones de Prisma |
+| `npm run db:seed` | Carga datos de prueba (facultades y materias de ejemplo) |
+
+## Probar la API a mano
+
+Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir [`apps/api/requests/auth-y-catalogo.http`](apps/api/requests/auth-y-catalogo.http) con la API corriendo y hacer clic en *Send Request* sobre cada bloque. Toda ruta que modifica datos necesita el header `X-Requested-With: estudioya` (ya incluido en los ejemplos).
 
 ## Roadmap
 
 - [x] **Fase 0 · Fundaciones**: decisiones de producto y stack, estructura del monorepo, esquema de base, Docker, documentación inicial
 - [x] **Fase 0 · Entorno local**: dependencias instaladas, infraestructura Docker levantada, primera migración (`init`) aplicada con sus restricciones
 - [ ] **Fase 0 · Pendiente**: repositorio en GitHub con `main` protegida, CI en verde, definir rango de precios y reglas "por confirmar", mockups
-- [ ] **Fase 1 · MVP**: registro/login/logout, perfil de profesor, facultades y materias con filtros, disponibilidad, reserva individual
+- [ ] **Fase 1 · MVP**
+  - [x] Backend: conexión a la base, datos de prueba, registro/login/logout/refresh/me, catálogo de facultades y materias *(código escrito, pendiente de verificar en local)*
+  - [ ] Backend: perfil de profesor, búsqueda de profesores con filtros, disponibilidad, reserva individual
+  - [ ] Frontend: inicio, login, registro, búsqueda
 - [ ] **Fase 2**: pagos con comisión (Mercado Pago), clases grupales, reseñas y ranking
 - [ ] **Fase 3**: chat con moderación, FAQ, soporte, alta de profesores con verificación, panel admin
 - [ ] **Fase 4**: pruebas de carga y seguridad, beta cerrada con una facultad
@@ -122,4 +135,5 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). Resumen: ramas cortas desde `main`, Pull
 | Fecha | Cambio |
 |---|---|
 | 2026-11-02 | Estructura inicial del monorepo, esquema de base de datos, Docker Compose, documentación de arquitectura |
+| 2026-11-18 | Backend base: `PrismaService`, seed de facultades y materias, módulo `auth` (registro, login, logout, refresh con rotación, `me`, guards de sesión y roles), módulo `catalog`, errores `problem+json`, protección CSRF por header, límite de tasa, `.http` de pruebas. Todo usuario nuevo es `STUDENT` |
 | 2026-11-17 | Primera migración `init` aplicada. PostgreSQL pasa al puerto 5433 del host y `DATABASE_URL` usa `127.0.0.1` (problema `P1001` en Windows/WSL). Agregada sección de solución de problemas. Recursos gráficos (logos y banners) en `apps/web/public/` |
