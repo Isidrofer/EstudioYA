@@ -20,6 +20,7 @@
     "typecheck": "npm run build:shared && npm run typecheck -w @estudioya/api && npm run typecheck -w @estudioya/web",
     "db:generate": "npm run prisma:generate -w @estudioya/api",
     "db:validate": "npm run prisma:validate -w @estudioya/api",
-    "db:migrate": "npm run prisma:migrate -w @estudioya/api"
+    "db:migrate": "npm run prisma:migrate -w @estudioya/api",
+    "db:seed": "npm run prisma:seed -w @estudioya/api"
   }
 }

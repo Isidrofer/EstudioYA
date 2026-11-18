@@ -85,6 +85,8 @@ Ver [CONTRIBUTING.md](../CONTRIBUTING.md#migraciones-de-base-de-datos). Procedim
 |---|---|---|
 | `init` | 2026-11-17 | Todas las tablas del esquema + restricciones de `sql/001_constraints.sql` (EXCLUDE, CHECK, índices parciales) |
 
+**Datos de prueba:** `npm run db:seed` carga facultades y materias de ejemplo (`apps/api/prisma/seed.ts`). Es idempotente (upsert por `slug`). Hay que reemplazar el contenido por el de la universidad real antes de lanzar.
+
 **Verificar que las restricciones quedaron aplicadas:**
 
 ```bash

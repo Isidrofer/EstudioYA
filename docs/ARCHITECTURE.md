@@ -48,6 +48,8 @@ flowchart LR
 | Backend | NestJS + TypeScript | Nest 11 | Módulos, DI, guards, WebSocket gateway |
 | ORM | Prisma | 6 | Migraciones + SQL crudo para restricciones |
 | Validación | Zod | 3 | Schemas compartidos en `packages/shared` |
+| Auth | `@nestjs/jwt` + argon2 | — | JWT en cookies httpOnly; refresh rotativo |
+| Seguridad HTTP | helmet, cookie-parser, `@nestjs/throttler` | — | Cabeceras, cookies y límite de tasa |
 | Frontend | Next.js + React + TypeScript | Next 15 / React 19 | SSR para páginas públicas (SEO de profesores) |
 | Base de datos | PostgreSQL | 16 | Extensión `btree_gist` |
 | Mensajería | RabbitMQ | 3.13 | Local en Docker |
@@ -82,9 +84,10 @@ Cada módulo vive en `apps/api/src/modules/<nombre>/` con su controller, service
 | Módulo | Responsabilidad | Estado |
 |---|---|---|
 | `health` | Chequeo de salud | ✅ |
-| `auth` | Registro, login, logout, refresh, Google, guards y roles | ⬜ |
+| `prisma` | Conexión global a la base (`PrismaService`) | ✅ |
+| `auth` | Registro, login, logout, refresh, `me`, guards y roles (Google: pendiente) | ✅ |
 | `users` | Perfil del usuario | ⬜ |
-| `catalog` | Facultades y materias | ⬜ |
+| `catalog` | Facultades y materias | ✅ |
 | `teachers` | Perfiles, materias y precios, búsqueda y ranking, solicitudes de alta | ⬜ |
 | `availability` | Slots de disponibilidad del profesor | ⬜ |
 | `bookings` | Reservas, cupos, cancelaciones, vencimiento de holds | ⬜ |
@@ -117,7 +120,8 @@ Las marcadas **(por confirmar)** son una propuesta inicial que el equipo debe va
 | BR-12 | El pago al profesor se libera **24 h después** de completada la clase si no hay reclamo (ver riesgo R-01). | (por confirmar) |
 | BR-13 | Política de cancelación: el alumno cancela sin costo hasta **24 h antes** (reembolso total); después, sin reembolso. Si cancela el profesor, reembolso total al alumno. Si una grupal no llega a `minStudents` a las 24 h previas, se cancela y se reembolsa. | (por confirmar) |
 | BR-14 | Chat: solo entre alumno y profesor, habilitado al existir una reserva entre ambos. Se bloquean teléfonos, emails, links y menciones a canales de contacto externos (evitar eludir la comisión). Insultos: el mensaje se bloquea. Todo mensaje bloqueado o marcado queda registrado. | (por confirmar) |
-| BR-15 | Registro solo para mayores de 18 años: se exige declaración explícita y aceptación de términos; se guarda fecha y versión (`adultDeclaredAt`, `termsAcceptedAt`, `termsVersion`). | Confirmada |
+| BR-15 | Registro solo para mayores de 18 años: se exige declaración explícita y aceptación de términos; se guarda fecha y versión (`adultDeclaredAt`, `termsAcceptedAt`, `termsVersion`). La versión vigente es `CURRENT_TERMS_VERSION` (`packages/shared`), hoy `0.1-borrador` hasta que un abogado revise los textos. | Confirmada |
+| BR-17 | Todo usuario nuevo es `STUDENT`. El rol `TEACHER` solo se asigna al aprobar una solicitud de profesor (BR-11); `ADMIN` se asigna manualmente en la base. | Confirmada |
 | BR-16 | Todas las fechas se almacenan y transmiten en UTC; la interfaz las muestra en `America/Argentina/Buenos_Aires`. | Confirmada |
 
 ## 6. Reglas de contrato de la API
@@ -186,6 +190,9 @@ Validación (`400`): igual, con `code: "VALIDATION_ERROR"` y `errors: [{ "field"
 
 ## 7. Endpoints REST
 
+> **Estado 🟨 = código escrito, pendiente de verificar en local.** Pasa a ✅ cuando se probó con `apps/api/requests/auth-y-catalogo.http`.
+> Ejemplos listos para ejecutar: [`apps/api/requests/auth-y-catalogo.http`](../apps/api/requests/auth-y-catalogo.http) (extensión *REST Client* de VS Code).
+
 Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profesor aprobado · **A** admin · **U** cualquier usuario autenticado.
 
 ### Salud
@@ -198,20 +205,20 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| POST | `/auth/register` | P | Alta de alumno o profesor (`registerSchema`) | ⬜ |
-| POST | `/auth/login` | P | Inicia sesión y setea cookies (`loginSchema`) | ⬜ |
-| POST | `/auth/logout` | U | Revoca el refresh token y limpia cookies | ⬜ |
-| POST | `/auth/refresh` | P | Rota el refresh token | ⬜ |
+| POST | `/auth/register` | P | Alta de usuario. **Siempre como `STUDENT`**; para ser profesor se usa `/teacher-applications`. Devuelve `201` con el usuario y deja la sesión iniciada (`registerSchema`). Email repetido: `409 CONFLICT`. Límite: 10/min | 🟨 |
+| POST | `/auth/login` | P | Inicia sesión y setea cookies (`loginSchema`). Credenciales inválidas: `401` genérico. Límite: 10/min | 🟨 |
+| POST | `/auth/logout` | P | Revoca el refresh token y limpia cookies (`204`). Funciona aunque la sesión haya vencido | 🟨 |
+| POST | `/auth/refresh` | P (cookie) | Rota el refresh token (`204` + cookies nuevas). Si se reusa un token ya rotado se revocan todas las sesiones del usuario | 🟨 |
 | GET | `/auth/google` · `/auth/google/callback` | P | Login con Google | ⬜ |
-| GET | `/auth/me` | U | Usuario autenticado | ⬜ |
+| GET | `/auth/me` | U | Usuario autenticado | 🟨 |
 
 ### Catálogo
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| GET | `/faculties` | P | Lista de facultades | ⬜ |
-| GET | `/faculties/:facultyId/subjects` | P | Materias de una facultad | ⬜ |
-| GET | `/subjects?q=&facultyId=` | P | Búsqueda de materias | ⬜ |
+| GET | `/faculties` | P | Lista de facultades (`FacultyDto[]`, sin paginar: catálogo corto) | 🟨 |
+| GET | `/faculties/:facultyId/subjects` | P | Materias de una facultad (`SubjectDto[]`). Facultad inexistente: `404` | 🟨 |
+| GET | `/subjects?q=&facultyId=&page=&pageSize=` | P | Búsqueda de materias por nombre, paginada (`Paginated<SubjectDto>`) | 🟨 |
 
 ### Profesores
 
@@ -356,6 +363,12 @@ Plantilla completa en [`.env.example`](../.env.example). Nunca se sube `.env`.
 ## 11. Seguridad
 
 - Contraseñas con **argon2id**. Mínimo 10 caracteres.
+- Sesión: access token JWT (15 min) en cookie `access_token` (`path=/`) y refresh token opaco (30 días) en cookie `refresh_token` (`path=/api/v1/auth`), ambas `httpOnly` y `SameSite=Lax` (`Secure` en producción). En la base solo se guarda el **hash SHA-256** del refresh token.
+- Refresh **rotativo con detección de reuso**: cada renovación revoca el token usado; si alguien presenta uno ya revocado, se revocan todas las sesiones del usuario.
+- Login: el tiempo de respuesta y el mensaje de error son iguales exista o no el email (evita enumerar usuarios). *Excepción conocida:* el registro con un email ya existente devuelve `409`.
+- CSRF: toda ruta que modifica datos exige `X-Requested-With: estudioya` (middleware global; los webhooks de pago están exceptuados y se validan por firma). Ver `apps/api/src/common/csrf-header.middleware.ts`.
+- Errores en formato `application/problem+json` mediante un filtro global (`ProblemDetailsFilter`); los errores no controlados se registran con un `traceId` y no exponen detalles.
+- Pendientes de seguridad: verificación de email (`emailVerifiedAt` hoy queda en `null`), recuperación de contraseña, limpieza periódica de refresh tokens vencidos.
 - Tokens de Mercado Pago de los profesores **cifrados** en la base (AES-256-GCM, clave en `TOKEN_ENCRYPTION_KEY`).
 - Webhooks: validar firma `x-signature` y consultar el pago a la API de Mercado Pago antes de confiar en el payload.
 - Documentos de verificación en bucket privado; acceso solo por URL firmada de corta duración y solo para `ADMIN`.
