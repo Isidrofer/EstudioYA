@@ -21,7 +21,7 @@ Plataforma de clases particulares **hecha por estudiantes, para estudiantes**. U
 | Capa | Tecnología |
 |---|---|
 | Backend | Node.js 22 · TypeScript · NestJS |
-| Frontend | Next.js (React) · TypeScript |
+| Frontend | Next.js (React) · TypeScript · Tailwind CSS · shadcn/ui |
 | Base de datos | PostgreSQL 16 · Prisma |
 | Mensajería | RabbitMQ (local, Docker) |
 | Pagos | Mercado Pago (Marketplace / split) |
@@ -43,6 +43,10 @@ estudioya/
 │   │       ├── prisma/      #     Conexión a la base
 │   │       └── modules/     #     auth, catalog, teachers, admin, support (y los que vengan)
 │   └── web/                 # Frontend Next.js
+│       ├── src/
+│       │   ├── app/         #   Páginas, layout y estilos globales (globals.css)
+│       │   ├── components/  #   layout/ (header, footer) y ui/ (componentes de shadcn, no editar a mano)
+│       │   └── lib/         #   Utilidades
 │       └── public/          #   Recursos estáticos: logos/, banners/, favicon (se sirven desde "/")
 ├── packages/
 │   └── shared/              # Constantes, errores y schemas Zod compartidos (API ↔ web)
@@ -121,7 +125,8 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
   - [x] Backend: FAQ pública y formulario de contacto (tickets de soporte), con su gestión desde el admin
   - [ ] Backend: disponibilidad semanal del profesor y generación de horarios reservables
   - [ ] Backend: perfil público y búsqueda de profesores con filtros, reserva individual
-  - [ ] Frontend: inicio, login, registro, búsqueda
+  - [x] Frontend: base visual (Tailwind CSS, shadcn/ui), layout con header y footer, página de inicio
+  - [ ] Frontend: login, registro, búsqueda
 - [ ] **Fase 2**: pagos con comisión (Mercado Pago), clases grupales, reseñas y ranking
 - [ ] **Fase 3**: chat con moderación, FAQ, soporte, alta de profesores con verificación, panel admin
 - [ ] **Fase 4**: pruebas de carga y seguridad, beta cerrada con una facultad
@@ -141,6 +146,7 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y 
 
 | Fecha | Cambio |
 |---|---|
+| 2026-11-19 | FE-01 · Base visual del frontend: Tailwind CSS v4 y shadcn/ui (Base UI, preset Nova), paleta de la marca (azul marino `#1e1b4b` y naranja `#ea580c`) definida en `globals.css`, layout con header (menú colapsable en celular) y footer, y página de inicio. Los links "Ingresar" y "Registrarse" apuntan a `/login` y `/registro`, que dan 404 hasta FE-03. Sin cambios en la API ni en la base |
 | 2026-11-19 | BE-11 · Soporte: módulo `support` con `GET /faq`, formulario de contacto `POST /support/tickets` (público; asocia el usuario si hay sesión; límite 5/min; evento `support.ticket.created` en el outbox) y gestión desde el admin (`/admin/faq` y `/admin/support/tickets`). Nuevo `OptionalAuthGuard`. Schemas en `packages/shared/src/schemas/support.ts`. El seed carga FAQ de ejemplo. Sin cambios en la base |
 | 2026-11-02 | Estructura inicial del monorepo, esquema de base de datos, Docker Compose, documentación de arquitectura |
 | 2026-11-18 | Se agrega `docs/BACKLOG.md` (trabajo pendiente priorizado). Alta de profesores: `PUT /teacher-applications/me`, subida de certificados (PDF/JPG/PNG, 5 MB), envío a revisión y panel admin (listar, ver, descargar documentos, aprobar, rechazar). Rango de precios provisorio hardcodeado. Migración `add_teacher_application_flow`. El seed puede crear el primer admin (`SEED_ADMIN_*`) |
