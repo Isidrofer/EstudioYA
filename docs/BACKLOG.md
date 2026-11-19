@@ -1,7 +1,7 @@
 # Backlog de EstudioYA
 
 > Lista de trabajo para el equipo. Cualquiera puede tomar tareas **sin esperar** a que otra persona esté conectada.
-> Última actualización: 2026-11-18 · Antes de empezar leer: [README](../README.md) → [ARCHITECTURE](ARCHITECTURE.md) → [DATABASE](DATABASE.md).
+> Última actualización: 2026-11-19 · Antes de empezar leer: [README](../README.md) → [ARCHITECTURE](ARCHITECTURE.md) → [DATABASE](DATABASE.md).
 
 ## 1. Estado actual
 
@@ -10,8 +10,9 @@
 - Auth: registro, login, logout, refresh, `GET /auth/me`, guards de sesión y roles.
 - Catálogo: facultades y materias (con datos de ejemplo).
 - Alta de profesores: solicitud con materias y precios, subida de certificados y revisión del admin (aprobar/rechazar).
+- Soporte (BE-11): FAQ pública, formulario de contacto y su gestión desde el admin.
 
-**Todavía no existe:** nada de frontend más allá de una página vacía, agenda y reservas, búsqueda de profesores, pagos, chat, reseñas, FAQ y soporte.
+**Todavía no existe:** nada de frontend más allá de una página vacía, agenda y reservas, búsqueda de profesores, pagos, chat y reseñas.
 
 ## 2. Cómo trabajar con este backlog
 
@@ -133,7 +134,7 @@ Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Result
 | BE-08 | **Pagos:** vincular cuenta del profesor (OAuth), checkout con comisión del 35 %, webhooks idempotentes, reembolsos, liberación de pagos | P1 | L | BE-07, BE-04 |
 | BE-09 | **Reseñas y ranking:** `POST /bookings/:id/review` (solo clases completadas), recálculo de puntaje, horas y tasa de cancelación según BR-10 | P2 | M | BE-04, BE-05 |
 | BE-10 | **Chat:** conversaciones, mensajes, WebSocket, filtro de insultos y datos de contacto, reportes de mensajes | P2 | L | BE-04, ⛔ D-02 |
-| BE-11 | **Soporte:** `GET /faq`, `POST /support/tickets`, gestión en admin | P1 | M | — |
+| BE-11 | ✅ **Soporte:** `GET /faq`, `POST /support/tickets`, gestión en admin (`/admin/faq`, `/admin/support/tickets`) | P1 | M | — |
 | BE-12 | **Administración:** pasar el rango de precios a `platform_settings` (editable), suspender/reactivar profesores, cola de mensajes reportados | P2 | M | ⛔ D-01 |
 | BE-13 | **Gestión del perfil del profesor:** `PATCH /teachers/me`, editar materias y precios después de aprobado, foto de perfil | P1 | M | — |
 | BE-14 | **Auth completa:** verificación de email, recuperar contraseña, login con Google | P1 | L | BE-06 |

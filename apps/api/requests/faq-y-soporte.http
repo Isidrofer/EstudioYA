@@ -1,0 +1,97 @@
+# FAQ y soporte (BE-11). Extensión "REST Client" de VS Code.
+#
+# ANTES: correr `npm run db:seed` (crea FAQ de ejemplo y, si definiste SEED_ADMIN_EMAIL y
+# SEED_ADMIN_PASSWORD en el .env, el usuario admin).
+# Cada bloque usa la cookie de la ÚLTIMA sesión iniciada: los pasos 1 a 4 son públicos,
+# del 5 en adelante hay que estar logueado como admin.
+
+@baseUrl = http://localhost:4000/api/v1
+
+### 1. FAQ publicadas (público, sin sesión)
+GET {{baseUrl}}/faq
+
+### 2. Enviar un ticket SIN sesión → 201 con { id, status: "OPEN", createdAt }
+POST {{baseUrl}}/support/tickets
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "category": "PAYMENT",
+  "subject": "No me llegó el comprobante",
+  "message": "Pagué una clase ayer y no recibí el comprobante por email.",
+  "email": "alumno@ejemplo.com"
+}
+
+### 3. Ticket inválido → 400 VALIDATION_ERROR con errors[] (categoría, asunto, mensaje y email)
+POST {{baseUrl}}/support/tickets
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{ "category": "CUALQUIERA", "subject": "a", "message": "corto", "email": "no-es-email" }
+
+### 4. Sin el header X-Requested-With → 403 (protección CSRF)
+POST {{baseUrl}}/support/tickets
+Content-Type: application/json
+
+{ "category": "OTHER", "subject": "Prueba", "message": "Esto debería fallar por CSRF.", "email": "a@b.com" }
+
+# Límite de tasa: si mandás el paso 2 más de 5 veces en un minuto → 429.
+
+### 5. Login como admin (los datos de SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD del .env)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{ "email": "REEMPLAZAR-EMAIL-ADMIN", "password": "REEMPLAZAR-CLAVE-ADMIN" }
+
+### 6. Tickets abiertos (por defecto status=OPEN, los más antiguos primero)
+GET {{baseUrl}}/admin/support/tickets
+
+### 7. Filtrar por estado y categoría
+GET {{baseUrl}}/admin/support/tickets?status=OPEN&category=PAYMENT&page=1&pageSize=20
+
+### 8. Detalle de un ticket (copiar el id del paso 2 o del 6)
+GET {{baseUrl}}/admin/support/tickets/REEMPLAZAR-ID-TICKET
+
+### 9. Cambiar el estado: OPEN | IN_PROGRESS | RESOLVED
+PATCH {{baseUrl}}/admin/support/tickets/REEMPLAZAR-ID-TICKET
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{ "status": "IN_PROGRESS" }
+
+### 10. Todas las FAQ, incluidas las no publicadas
+GET {{baseUrl}}/admin/faq
+
+### 11. Crear una FAQ (position y published son opcionales: 0 y true por defecto)
+POST {{baseUrl}}/admin/faq
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "question": "¿Puedo cancelar una clase?",
+  "answer": "Texto de prueba: la política de cancelación todavía está por confirmar (BR-13).",
+  "position": 60,
+  "published": false
+}
+
+### 12. Ver una FAQ (copiar el id del paso 11)
+GET {{baseUrl}}/admin/faq/REEMPLAZAR-ID-FAQ
+
+### 13. Reemplazar la FAQ completa (PUT: mandar todos los campos)
+PUT {{baseUrl}}/admin/faq/REEMPLAZAR-ID-FAQ
+Content-Type: application/json
+X-Requested-With: estudioya
+
+{
+  "question": "¿Puedo cancelar una clase?",
+  "answer": "Sí, desde Mis reservas. Las condiciones de reembolso se informan antes de pagar.",
+  "position": 60,
+  "published": true
+}
+
+### 14. Borrar la FAQ → 204
+DELETE {{baseUrl}}/admin/faq/REEMPLAZAR-ID-FAQ
+X-Requested-With: estudioya
+
+### 15. Un usuario que no es admin recibe 403 (iniciá sesión como alumno y repetí el paso 6)

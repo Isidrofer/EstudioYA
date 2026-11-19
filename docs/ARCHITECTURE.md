@@ -1,7 +1,7 @@
 # Arquitectura de EstudioYA
 
 > Documento vivo. Se actualiza en el mismo PR que cambia endpoints, puertos, contratos o reglas.
-> Última actualización: 2026-11-18 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
+> Última actualización: 2026-11-19 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
 
 ## Índice
 
@@ -95,8 +95,8 @@ Cada módulo vive en `apps/api/src/modules/<nombre>/` con su controller, service
 | `payments` | Checkout, OAuth de Mercado Pago, webhooks, reembolsos, payouts | ⬜ |
 | `chat` | Conversaciones, mensajes, moderación, reportes | ⬜ |
 | `reviews` | Reseñas y recálculo de puntaje | ⬜ |
-| `support` | FAQ y tickets de contacto | ⬜ |
-| `admin` | Revisión manual de solicitudes de profesores. Pendiente: configuración, soporte, moderación | ✅ |
+| `support` | FAQ y tickets de contacto, incluida su gestión desde el admin (`/admin/faq`, `/admin/support/tickets`) | 🟨 |
+| `admin` | Revisión manual de solicitudes de profesores. Pendiente: configuración y moderación (la gestión de soporte y FAQ vive en `support`) | ✅ |
 | `messaging` | Publicador del outbox y consumers de RabbitMQ (transversal) | ⬜ |
 
 **Regla de dependencias:** un módulo usa a otro solo a través de su `Service` exportado o de eventos. Nunca consulta directamente las tablas de otro módulo.
@@ -187,13 +187,13 @@ Validación (`400`): igual, con `code: "VALIDATION_ERROR"` y `errors: [{ "field"
 
 ### Límites
 
-22. Límite de tasa por IP y usuario: login y registro 10/min; resto 120/min; mensajes de chat 30/min. Exceso ⇒ `429` con `Retry-After`.
+22. Límite de tasa por IP y usuario: login y registro 10/min; formulario de contacto (`POST /support/tickets`) 5/min; resto 120/min; mensajes de chat 30/min. Exceso ⇒ `429` con `Retry-After`.
 23. Tamaño máximo de body JSON: 100 KB. Documentos de verificación: PDF/JPG/PNG, máx. 5 MB, subidos como `multipart/form-data` a la API (que valida el contenido y los guarda en el almacenamiento privado). Excederlo devuelve `413`.
 
 ## 7. Endpoints REST
 
 > **🟨 = código escrito, pendiente de verificar en local.** Pasa a ✅ cuando se probó con los archivos `.http` de `apps/api/requests/`.
-> Ejemplos listos para ejecutar: [`auth-y-catalogo.http`](../apps/api/requests/auth-y-catalogo.http) y [`profesores-y-admin.http`](../apps/api/requests/profesores-y-admin.http) (extensión *REST Client* de VS Code).
+> Ejemplos listos para ejecutar: [`auth-y-catalogo.http`](../apps/api/requests/auth-y-catalogo.http), [`profesores-y-admin.http`](../apps/api/requests/profesores-y-admin.http) y [`faq-y-soporte.http`](../apps/api/requests/faq-y-soporte.http) (extensión *REST Client* de VS Code).
 
 Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profesor aprobado · **A** admin · **U** cualquier usuario autenticado.
 
@@ -279,8 +279,8 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| GET | `/faq` | P | Preguntas frecuentes publicadas | ⬜ |
-| POST | `/support/tickets` | P | Contacto por un problema (`category`, `subject`, `message`, `email`) | ⬜ |
+| GET | `/faq` | P | Preguntas frecuentes publicadas (`FaqDto[]`, sin paginar), ordenadas por `position` | 🟨 |
+| POST | `/support/tickets` | P | Formulario de contacto (`createTicketSchema`: `category`, `subject`, `message`, `email`). Devuelve `201` con `{ id, status, createdAt }`. Si hay sesión válida, el ticket queda asociado al usuario; si no, se crea igual (anónimo). Registra el evento `support.ticket.created` en el outbox. Límite: 5/min | 🟨 |
 
 ### Administración
 
@@ -292,9 +292,15 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 | POST | `/admin/teacher-applications/:applicationId/approve` | A | Aprueba (solo desde `PENDING`): el usuario pasa a `TEACHER` y se registra el evento `teacher.approved` en el outbox | ✅ |
 | POST | `/admin/teacher-applications/:applicationId/reject` | A | Rechaza con `{ reason }` (solo desde `PENDING`) | ✅ |
 | GET · PUT | `/admin/settings` | A | Lee / edita `platform_settings` (rangos de precio) | ⬜ |
-| GET · PATCH | `/admin/support/tickets` | A | Gestión de tickets | ⬜ |
+| GET | `/admin/support/tickets?status=&category=&page=&pageSize=` | A | Tickets por estado (por defecto `OPEN`) y categoría opcional, los más antiguos primero (`Paginated<SupportTicketDto>`) | 🟨 |
+| GET | `/admin/support/tickets/:ticketId` | A | Detalle del ticket, con el usuario si lo envió con sesión | 🟨 |
+| PATCH | `/admin/support/tickets/:ticketId` | A | Cambia el estado `{ status: OPEN \| IN_PROGRESS \| RESOLVED }`. Se permite reabrir | 🟨 |
 | GET | `/admin/reported-messages` | A | Mensajes reportados o marcados | ⬜ |
-| PUT · DELETE | `/admin/faq/:id` | A | Gestión de FAQ | ⬜ |
+| GET | `/admin/faq` | A | Todas las FAQ, incluidas las no publicadas (`AdminFaqDto[]`) | 🟨 |
+| GET | `/admin/faq/:faqId` | A | Una FAQ | 🟨 |
+| POST | `/admin/faq` | A | Crea una FAQ (`faqSchema`: `question`, `answer`, `position` = 0, `published` = true). `201` | 🟨 |
+| PUT | `/admin/faq/:faqId` | A | Reemplaza la FAQ completa (`faqSchema`) | 🟨 |
+| DELETE | `/admin/faq/:faqId` | A | Borra la FAQ (`204`) | 🟨 |
 
 ## 8. Chat en tiempo real (WebSocket)
 
@@ -326,7 +332,7 @@ Broker local en Docker. Se usa solo para trabajo asíncrono que no debe bloquear
 |---|---|---|---|
 | `payments.webhook` | `payment.webhook.received` | `payments` (controller del webhook) | Consulta el pago en Mercado Pago y actualiza `payments` y `bookings` |
 | `bookings.expire` | `booking.hold.created` (con TTL de 10 min → DLX) | `bookings` | Pasa a `EXPIRED` las reservas impagas y libera el cupo |
-| `notifications.email` | `booking.confirmed`, `booking.cancelled`, `booking.reminder`, `payout.released`, `teacher.approved`, … | varios | Envía el email correspondiente |
+| `notifications.email` | `booking.confirmed`, `booking.cancelled`, `booking.reminder`, `payout.released`, `teacher.approved`, `support.ticket.created`, … | varios | Envía el email correspondiente |
 | `ratings.recalculate` | `review.created`, `booking.completed`, `booking.cancelled` | `reviews`, `bookings` | Recalcula estadísticas y `rankingScore` del profesor |
 | `chat.moderation` | `message.created` | `chat` | Revisión asíncrona de mensajes (patrones que el filtro síncrono no detecta) |
 | `payouts.release` | `payout.scheduled` (con TTL hasta `releaseAt`) | `payments` | Libera el pago al profesor |
