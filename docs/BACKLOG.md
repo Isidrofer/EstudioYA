@@ -58,10 +58,10 @@
 
 Estas tareas **no dependen de nadie más**. Sugerencia de reparto para empezar: una persona en frontend (FE-01 a FE-03), otra en backend (BE-03 y BE-07) y otra en infraestructura y calidad (OPS-01, BE-15).
 
-### FE-01 · Base visual del frontend · P0 · M
-- [ ] Configurar Tailwind CSS y una librería de componentes (propuesta: shadcn/ui), tipografía y paleta de colores.
-- [ ] Layout general (header con logo, navegación, footer) usando los logos de `apps/web/public/logos/`.
-- [ ] Página de inicio con el banner de `apps/web/public/banners/`.
+### ✅ FE-01 · Base visual del frontend · P0 · M
+- [x] Configurar Tailwind CSS y una librería de componentes (propuesta: shadcn/ui), tipografía y paleta de colores.
+- [x] Layout general (header con logo, navegación, footer) usando los logos de `apps/web/public/logos/`.
+- [x] Página de inicio con el banner de `apps/web/public/banners/`.
 - **Criterio:** se ve bien en celular y escritorio; el idioma de la página es `es-AR`.
 
 ### FE-02 · Cliente de la API y manejo de sesión · P0 · M
