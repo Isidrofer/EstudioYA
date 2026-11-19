@@ -1,7 +1,7 @@
 /**
- * Datos de prueba para desarrollo: facultades y materias de EJEMPLO.
+ * Datos de prueba para desarrollo: facultades, materias y preguntas frecuentes de EJEMPLO.
  * Reemplazar por las de la universidad con la que se lance. Es idempotente:
- * se puede ejecutar muchas veces sin duplicar (upsert por slug).
+ * se puede ejecutar muchas veces sin duplicar (upsert por slug; las FAQ se buscan por pregunta).
  *
  * Ejecutar: npm run db:seed
  */
@@ -69,7 +69,50 @@ async function main() {
   // eslint-disable-next-line no-console
   console.log(`Seed listo: ${Object.keys(CATALOG).length} facultades, ${subjectCount} materias.`);
 
+  await seedFaqs();
   await seedAdmin();
+}
+
+/**
+ * Preguntas frecuentes de EJEMPLO (los textos definitivos son la tarea PM-06).
+ * Solo se crean si no existe una FAQ con la misma pregunta: no pisa cambios hechos por el admin.
+ */
+const FAQS: { question: string; answer: string }[] = [
+  {
+    question: '¿Qué es EstudioYA?',
+    answer:
+      'Una plataforma de clases particulares hecha por estudiantes, para estudiantes. Reservás una clase en el calendario de un profesor (estudiante avanzado o graduado), la pagás dentro de la app y después lo puntuás.',
+  },
+  {
+    question: '¿Necesito ser mayor de edad para usar EstudioYA?',
+    answer: 'Sí. La plataforma es solo para mayores de 18 años, tanto alumnos como profesores.',
+  },
+  {
+    question: '¿Cómo me hago profesor?',
+    answer:
+      'Registrate, completá la solicitud de profesor con tus materias y precios y subí la documentación: si sos estudiante avanzado, el certificado de alumno regular y el de materias aprobadas; si sos graduado, tu título. Un administrador la revisa y te avisa si fue aprobada.',
+  },
+  {
+    question: '¿Cómo se cobran las clases?',
+    answer:
+      'Las clases se cobran por hora y se pagan dentro de la app con Mercado Pago. Cada profesor fija su precio dentro del rango que define la plataforma.',
+  },
+  {
+    question: '¿Cómo contacto al equipo de EstudioYA?',
+    answer: 'Desde el formulario de contacto. Elegí la categoría de tu consulta y te respondemos por email.',
+  },
+];
+
+async function seedFaqs() {
+  let created = 0;
+  for (const [index, faq] of FAQS.entries()) {
+    const exists = await prisma.faq.findFirst({ where: { question: faq.question }, select: { id: true } });
+    if (exists) continue;
+    await prisma.faq.create({ data: { ...faq, position: (index + 1) * 10, published: true } });
+    created += 1;
+  }
+  // eslint-disable-next-line no-console
+  console.log(`FAQ: ${created} creadas (${FAQS.length - created} ya existían).`);
 }
 
 /**

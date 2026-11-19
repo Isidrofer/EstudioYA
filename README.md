@@ -3,7 +3,7 @@
 Plataforma de clases particulares **hecha por estudiantes, para estudiantes**. Un estudiante reserva una clase en el calendario de un profesor (estudiante avanzado o graduado), paga dentro de la app y después puntúa al profesor.
 
 > **Estado del proyecto:** Fase 0 (fundaciones). Ver el [roadmap](#roadmap) y el [CHANGELOG](#changelog).
-> Última actualización: 2026-11-18
+> Última actualización: 2026-11-19
 
 ## Características previstas
 
@@ -41,7 +41,7 @@ estudioya/
 │   │   └── src/
 │   │       ├── common/      #     Errores RFC 7807, validación Zod, CSRF, utilidades
 │   │       ├── prisma/      #     Conexión a la base
-│   │       └── modules/     #     auth, catalog (y los que vengan)
+│   │       └── modules/     #     auth, catalog, teachers, admin, support (y los que vengan)
 │   └── web/                 # Frontend Next.js
 │       └── public/          #   Recursos estáticos: logos/, banners/, favicon (se sirven desde "/")
 ├── packages/
@@ -108,7 +108,7 @@ Para revisar solicitudes de profesores hace falta un usuario `ADMIN`. En desarro
 
 ## Probar la API a mano
 
-Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir los archivos de [`apps/api/requests/`](apps/api/requests/) (`auth-y-catalogo.http` y `profesores-y-admin.http`) con la API corriendo y hacer clic en *Send Request* sobre cada bloque. Toda ruta que modifica datos necesita el header `X-Requested-With: estudioya` (ya incluido en los ejemplos).
+Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir los archivos de [`apps/api/requests/`](apps/api/requests/) (`auth-y-catalogo.http`, `profesores-y-admin.http` y `faq-y-soporte.http`) con la API corriendo y hacer clic en *Send Request* sobre cada bloque. Toda ruta que modifica datos necesita el header `X-Requested-With: estudioya` (ya incluido en los ejemplos).
 
 ## Roadmap
 
@@ -118,6 +118,7 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
 - [ ] **Fase 1 · MVP**
   - [x] Backend: conexión a la base, datos de prueba, registro/login/logout/refresh/me, catálogo de facultades y materias
   - [x] Backend: solicitud de alta de profesor (datos, materias con precios, certificados) y revisión manual del admin
+  - [x] Backend: FAQ pública y formulario de contacto (tickets de soporte), con su gestión desde el admin
   - [ ] Backend: disponibilidad semanal del profesor y generación de horarios reservables
   - [ ] Backend: perfil público y búsqueda de profesores con filtros, reserva individual
   - [ ] Frontend: inicio, login, registro, búsqueda
@@ -140,6 +141,7 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y 
 
 | Fecha | Cambio |
 |---|---|
+| 2026-11-19 | BE-11 · Soporte: módulo `support` con `GET /faq`, formulario de contacto `POST /support/tickets` (público; asocia el usuario si hay sesión; límite 5/min; evento `support.ticket.created` en el outbox) y gestión desde el admin (`/admin/faq` y `/admin/support/tickets`). Nuevo `OptionalAuthGuard`. Schemas en `packages/shared/src/schemas/support.ts`. El seed carga FAQ de ejemplo. Sin cambios en la base |
 | 2026-11-02 | Estructura inicial del monorepo, esquema de base de datos, Docker Compose, documentación de arquitectura |
 | 2026-11-18 | Se agrega `docs/BACKLOG.md` (trabajo pendiente priorizado). Alta de profesores: `PUT /teacher-applications/me`, subida de certificados (PDF/JPG/PNG, 5 MB), envío a revisión y panel admin (listar, ver, descargar documentos, aprobar, rechazar). Rango de precios provisorio hardcodeado. Migración `add_teacher_application_flow`. El seed puede crear el primer admin (`SEED_ADMIN_*`) |
 | 2026-11-18 | Backend base: `PrismaService`, seed de facultades y materias, módulo `auth` (registro, login, logout, refresh con rotación, `me`, guards de sesión y roles), módulo `catalog`, errores `problem+json`, protección CSRF por header, límite de tasa, `.http` de pruebas. Todo usuario nuevo es `STUDENT` |

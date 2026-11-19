@@ -5,6 +5,7 @@ import { AuthCookiesService } from './auth-cookies.service';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
+import { OptionalAuthGuard } from './optional-auth.guard';
 import { RolesGuard } from './roles';
 
 @Module({
@@ -23,8 +24,8 @@ import { RolesGuard } from './roles';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthCookiesService, AuthGuard, RolesGuard],
-  // Otros módulos que usen AuthGuard/RolesGuard importan AuthModule.
-  exports: [JwtModule, AuthGuard, RolesGuard],
+  providers: [AuthService, AuthCookiesService, AuthGuard, OptionalAuthGuard, RolesGuard],
+  // Otros módulos que usen AuthGuard/OptionalAuthGuard/RolesGuard importan AuthModule.
+  exports: [JwtModule, AuthGuard, OptionalAuthGuard, RolesGuard],
 })
 export class AuthModule {}
