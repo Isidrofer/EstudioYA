@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Paleta de EstudioYA ─────────────────────────────────────
+   Sacada de logo.png y banner.webp:
+   azul marino #1e1b4b · naranja #ea580c · blanco
+   Para cambiar los colores del sitio, editar solo el bloque :root.
+   ─────────────────────────────────────────────────────────── */
+:root {
+  /* Marca */
+  --brand-navy: #1e1b4b;
+  --brand-orange: #ea580c;
+  --brand-orange-strong: #c2410c; /* botones naranjas con texto blanco (contraste ~5:1) */
+
+  /* Variables de shadcn/ui */
+  --background: #f8f8fb;
+  --foreground: #1e1b4b;
+  --card: #ffffff;
+  --card-foreground: #1e1b4b;
+  --popover: #ffffff;
+  --popover-foreground: #1e1b4b;
+  --primary: #1e1b4b;
+  --primary-foreground: #ffffff;
+  --secondary: #eeeef6;
+  --secondary-foreground: #1e1b4b;
+  --muted: #eeeef6;
+  --muted-foreground: #5b5880;
+  --accent: #ffedd5;
+  --accent-foreground: #1e1b4b;
+  --destructive: #dc2626;
+  --border: #dddcec;
+  --input: #dddcec;
+  --ring: #ea580c;
+  --radius: 0.5rem;
+}
+
+/* Conecta las variables con las clases de Tailwind (bg-primary, text-brand-navy, etc.) */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-strong: var(--brand-orange-strong);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-geist-sans, system-ui), system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Foco visible para teclado: anillo naranja, se ve sobre fondo claro y oscuro */
+  :focus-visible {
+    outline: 3px solid var(--brand-orange);
+    outline-offset: 2px;
+  }
+}
