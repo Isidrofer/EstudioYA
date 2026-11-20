@@ -11,8 +11,9 @@
 - Catálogo: facultades y materias (con datos de ejemplo).
 - Alta de profesores: solicitud con materias y precios, subida de certificados y revisión del admin (aprobar/rechazar).
 - Soporte (BE-11): FAQ pública, formulario de contacto y su gestión desde el admin.
+- Frontend (FE-01, FE-02): base visual, layout y página de inicio; cliente de la API (`apps/web/src/lib/api.ts`), TanStack Query y hook `useSession()`.
 
-**Todavía no existe:** nada de frontend más allá de una página vacía, agenda y reservas, búsqueda de profesores, pagos, chat y reseñas.
+**Todavía no existe:** pantallas de login y registro (FE-03), agenda y reservas, búsqueda de profesores, pagos, chat y reseñas.
 
 ## 2. Cómo trabajar con este backlog
 
@@ -64,9 +65,9 @@ Estas tareas **no dependen de nadie más**. Sugerencia de reparto para empezar: 
 - [x] Página de inicio con el banner de `apps/web/public/banners/`.
 - **Criterio:** se ve bien en celular y escritorio; el idioma de la página es `es-AR`.
 
-### FE-02 · Cliente de la API y manejo de sesión · P0 · M
-- [ ] Módulo `api` con `fetch` que agrega `credentials: 'include'` y `X-Requested-With`, interpreta `problem+json` y reintenta una vez tras `POST /auth/refresh` ante un `401`.
-- [ ] Configurar TanStack Query y un contexto/hook `useSession()` basado en `GET /auth/me`.
+### ✅ FE-02 · Cliente de la API y manejo de sesión · P0 · M
+- [x] Módulo `api` con `fetch` que agrega `credentials: 'include'` y `X-Requested-With`, interpreta `problem+json` y reintenta una vez tras `POST /auth/refresh` ante un `401`.
+- [x] Configurar TanStack Query y un contexto/hook `useSession()` basado en `GET /auth/me`.
 - **Criterio:** una pantalla de prueba muestra el usuario logueado y se recupera sola cuando vence el access token.
 - **Depende de:** nada (la API ya existe).
 

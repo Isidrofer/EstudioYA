@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import Providers from "@/components/providers";
 import "./globals.css";
 
 /* ── Tipografías ────────────────────────────────────────────────
@@ -36,9 +37,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="flex min-h-screen flex-col antialiased">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        {/* Providers: TanStack Query y sesión (FE-02). Envuelve todo para que el header también pueda usar useSession(). */}
+        <Providers>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );
