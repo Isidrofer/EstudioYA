@@ -3,7 +3,7 @@
 Plataforma de clases particulares **hecha por estudiantes, para estudiantes**. Un estudiante reserva una clase en el calendario de un profesor (estudiante avanzado o graduado), paga dentro de la app y después puntúa al profesor.
 
 > **Estado del proyecto:** Fase 0 (fundaciones). Ver el [roadmap](#roadmap) y el [CHANGELOG](#changelog).
-> Última actualización: 2026-11-19
+> Última actualización: 2026-11-20
 
 ## Características previstas
 
@@ -21,7 +21,7 @@ Plataforma de clases particulares **hecha por estudiantes, para estudiantes**. U
 | Capa | Tecnología |
 |---|---|
 | Backend | Node.js 22 · TypeScript · NestJS |
-| Frontend | Next.js (React) · TypeScript · Tailwind CSS · shadcn/ui |
+| Frontend | Next.js (React) · TypeScript · Tailwind CSS · shadcn/ui · TanStack Query |
 | Base de datos | PostgreSQL 16 · Prisma |
 | Mensajería | RabbitMQ (local, Docker) |
 | Pagos | Mercado Pago (Marketplace / split) |
@@ -45,8 +45,9 @@ estudioya/
 │   └── web/                 # Frontend Next.js
 │       ├── src/
 │       │   ├── app/         #   Páginas, layout y estilos globales (globals.css)
-│       │   ├── components/  #   layout/ (header, footer) y ui/ (componentes de shadcn, no editar a mano)
-│       │   └── lib/         #   Utilidades
+│       │   ├── components/  #   layout/ (header, footer), ui/ (componentes de shadcn, no editar a mano) y providers.tsx
+│       │   ├── hooks/       #   Hooks propios, ej. useSession()
+│       │   └── lib/         #   Utilidades y cliente de la API (api.ts)
 │       └── public/          #   Recursos estáticos: logos/, banners/, favicon (se sirven desde "/")
 ├── packages/
 │   └── shared/              # Constantes, errores y schemas Zod compartidos (API ↔ web)
@@ -126,6 +127,7 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
   - [ ] Backend: disponibilidad semanal del profesor y generación de horarios reservables
   - [ ] Backend: perfil público y búsqueda de profesores con filtros, reserva individual
   - [x] Frontend: base visual (Tailwind CSS, shadcn/ui), layout con header y footer, página de inicio
+  - [x] Frontend: cliente de la API con renovación automática de sesión, TanStack Query y `useSession()`
   - [ ] Frontend: login, registro, búsqueda
 - [ ] **Fase 2**: pagos con comisión (Mercado Pago), clases grupales, reseñas y ranking
 - [ ] **Fase 3**: chat con moderación, FAQ, soporte, alta de profesores con verificación, panel admin
@@ -146,6 +148,7 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y 
 
 | Fecha | Cambio |
 |---|---|
+| 2026-11-20 | FE-02 · Cliente de la API y sesión en la web: módulo `apps/web/src/lib/api.ts` (cookies, header CSRF, errores `problem+json` como `ApiError`, reintento único tras `POST /auth/refresh` ante un `401`, con refresh compartido entre requests simultáneas), TanStack Query configurado en `components/providers.tsx` y hook `useSession()` sobre `GET /auth/me`. Pantalla temporal `/prueba-sesion`. Nueva dependencia `@tanstack/react-query`. Sin cambios en la API ni en la base |
 | 2026-11-19 | FE-01 · Base visual del frontend: Tailwind CSS v4 y shadcn/ui (Base UI, preset Nova), paleta de la marca (azul marino `#1e1b4b` y naranja `#ea580c`) definida en `globals.css`, layout con header (menú colapsable en celular) y footer, y página de inicio. Los links "Ingresar" y "Registrarse" apuntan a `/login` y `/registro`, que dan 404 hasta FE-03. Sin cambios en la API ni en la base |
 | 2026-11-19 | BE-11 · Soporte: módulo `support` con `GET /faq`, formulario de contacto `POST /support/tickets` (público; asocia el usuario si hay sesión; límite 5/min; evento `support.ticket.created` en el outbox) y gestión desde el admin (`/admin/faq` y `/admin/support/tickets`). Nuevo `OptionalAuthGuard`. Schemas en `packages/shared/src/schemas/support.ts`. El seed carga FAQ de ejemplo. Sin cambios en la base |
 | 2026-11-02 | Estructura inicial del monorepo, esquema de base de datos, Docker Compose, documentación de arquitectura |

@@ -51,6 +51,7 @@ flowchart LR
 | Auth | `@nestjs/jwt` + argon2 | — | JWT en cookies httpOnly; refresh rotativo |
 | Seguridad HTTP | helmet, cookie-parser, `@nestjs/throttler` | — | Cabeceras, cookies y límite de tasa |
 | Frontend | Next.js + React + TypeScript | Next 15 / React 19 | SSR para páginas públicas (SEO de profesores) |
+| Datos en el cliente | TanStack Query | 5 | Cache de datos de la API y sesión (`useSession()`); ver §6 "Cliente web" |
 | Base de datos | PostgreSQL | 16 | Extensión `btree_gist` |
 | Mensajería | RabbitMQ | 3.13 | Local en Docker |
 | Pagos | Mercado Pago Marketplace | — | Split de pagos, OAuth de vendedores |
@@ -59,7 +60,7 @@ flowchart LR
 | Tiempo real | Socket.IO sobre el gateway de NestJS | — | |
 | CI | GitHub Actions | — | `.github/workflows/ci.yml` |
 
-Pendientes de elegir cuando haga falta (no bloquean el MVP): librería de UI, estado de datos del cliente (se propone TanStack Query), framework de tests (Jest o Vitest + Playwright), logger (pino) y Sentry.
+Pendientes de elegir cuando haga falta (no bloquean el MVP): framework de tests (Jest o Vitest + Playwright), logger (pino) y Sentry.
 
 ## 3. Puertos y servicios
 
@@ -147,6 +148,18 @@ Reglas obligatorias para todos los endpoints. Los schemas de entrada/salida se d
 10. Rutas mutantes (`POST/PUT/PATCH/DELETE`) exigen además el header `X-Requested-With: estudioya` como defensa CSRF básica; el CORS solo permite `WEB_URL`.
 11. Roles: `STUDENT`, `TEACHER`, `ADMIN`. Cada endpoint declara el rol requerido (columna *Acceso* en §7). Un usuario solo accede a sus propios recursos (reservas, chats, pagos) salvo `ADMIN`.
 12. Respuestas: `401` si no hay sesión válida, `403` si hay sesión pero sin permiso, `404` también cuando el recurso existe pero pertenece a otro usuario (no revelar existencia).
+
+### Cliente web
+
+La web llama a la API **solo** con el módulo [`apps/web/src/lib/api.ts`](../apps/web/src/lib/api.ts) (`api.get/post/put/patch/delete` o `apiFetch`), nunca con `fetch` directo:
+
+- Envía siempre `credentials: 'include'` y `X-Requested-With: estudioya`. Si el `body` es un objeto lo manda como JSON; si es `FormData`, como multipart.
+- Las respuestas con error se convierten en `ApiError` (`status`, `code`, `title`, `detail`, `fieldErrors`). Si la API no responde, `code` es `NETWORK_ERROR` y `status` es `0`.
+- Ante un `401` llama a `POST /auth/refresh` y repite la request **una vez**. El refresh es "de un solo vuelo": si varias requests reciben `401` a la vez, comparten la misma llamada, porque reusar un refresh token ya rotado revoca todas las sesiones (regla 9). No se intenta en `/auth/login`, `/auth/register`, `/auth/refresh` ni `/auth/logout`.
+- La sesión vive en la cache de TanStack Query con la clave `['auth','me']`. El hook `useSession()` devuelve `{ user, status }` (`loading` · `authenticated` · `unauthenticated`); sin sesión, `user` es `null` y no hay error. Tras login o logout se actualiza con `queryClient.setQueryData(SESSION_QUERY_KEY, ...)`. Si el refresh falla, la sesión pasa a `null` en toda la app.
+- Solo se usa en Client Components (`"use client"`): en el servidor de Next no están las cookies del usuario.
+- `NEXT_PUBLIC_API_URL` se lee de `apps/web/.env.local` (Next no carga el `.env` de la raíz); si no está, se usa `http://localhost:4000/api/v1`.
+- `/prueba-sesion` es una pantalla temporal para probar todo esto; se borra cuando exista el login de FE-03.
 
 ### Errores
 
@@ -363,7 +376,7 @@ Plantilla completa en [`.env.example`](../.env.example). Nunca se sube `.env`.
 
 | Variable | Uso |
 |---|---|
-| `API_PORT`, `WEB_PORT`, `WEB_URL`, `NEXT_PUBLIC_API_URL` | Puertos y URLs entre web y API |
+| `API_PORT`, `WEB_PORT`, `WEB_URL`, `NEXT_PUBLIC_API_URL` | Puertos y URLs entre web y API (`NEXT_PUBLIC_API_URL` la lee la web desde `apps/web/.env.local`) |
 | `POSTGRES_*`, `DATABASE_URL` | Base de datos |
 | `RABBITMQ_*`, `RABBITMQ_URL` | Broker |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ACCESS_TOKEN_TTL`, `REFRESH_TOKEN_TTL` | Sesiones |
