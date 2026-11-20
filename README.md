@@ -125,7 +125,8 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
   - [x] Backend: solicitud de alta de profesor (datos, materias con precios, certificados) y revisión manual del admin
   - [x] Backend: FAQ pública y formulario de contacto (tickets de soporte), con su gestión desde el admin
   - [ ] Backend: disponibilidad semanal del profesor y generación de horarios reservables
-  - [ ] Backend: perfil público y búsqueda de profesores con filtros, reserva individual
+  - [x] Backend: perfil público y búsqueda de profesores con filtros
+  - [ ] Backend: reserva individual
   - [x] Frontend: base visual (Tailwind CSS, shadcn/ui), layout con header y footer, página de inicio
   - [x] Frontend: cliente de la API con renovación automática de sesión, TanStack Query y `useSession()`
   - [ ] Frontend: login, registro, búsqueda
@@ -148,6 +149,7 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y 
 
 | Fecha | Cambio |
 |---|---|
+| 2026-11-20 | BE-03 · Búsqueda y perfil público de profesores: `GET /teachers` (filtros por facultad, materia, tipo de clase, precio y puntaje; orden recomendado / precio / puntaje; paginado) y `GET /teachers/:teacherId`. Solo profesores aprobados con cuenta activa. Schemas y DTOs en `packages/shared/src/schemas/teacher-search.ts`. Sin cambios en la base |
 | 2026-11-20 | FE-02 · Cliente de la API y sesión en la web: módulo `apps/web/src/lib/api.ts` (cookies, header CSRF, errores `problem+json` como `ApiError`, reintento único tras `POST /auth/refresh` ante un `401`, con refresh compartido entre requests simultáneas), TanStack Query configurado en `components/providers.tsx` y hook `useSession()` sobre `GET /auth/me`. Pantalla temporal `/prueba-sesion`. Nueva dependencia `@tanstack/react-query`. Sin cambios en la API ni en la base |
 | 2026-11-19 | FE-01 · Base visual del frontend: Tailwind CSS v4 y shadcn/ui (Base UI, preset Nova), paleta de la marca (azul marino `#1e1b4b` y naranja `#ea580c`) definida en `globals.css`, layout con header (menú colapsable en celular) y footer, y página de inicio. Los links "Ingresar" y "Registrarse" apuntan a `/login` y `/registro`, que dan 404 hasta FE-03. Sin cambios en la API ni en la base |
 | 2026-11-19 | BE-11 · Soporte: módulo `support` con `GET /faq`, formulario de contacto `POST /support/tickets` (público; asocia el usuario si hay sesión; límite 5/min; evento `support.ticket.created` en el outbox) y gestión desde el admin (`/admin/faq` y `/admin/support/tickets`). Nuevo `OptionalAuthGuard`. Schemas en `packages/shared/src/schemas/support.ts`. El seed carga FAQ de ejemplo. Sin cambios en la base |

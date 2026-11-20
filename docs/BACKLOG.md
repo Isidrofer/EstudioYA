@@ -10,10 +10,11 @@
 - Auth: registro, login, logout, refresh, `GET /auth/me`, guards de sesión y roles.
 - Catálogo: facultades y materias (con datos de ejemplo).
 - Alta de profesores: solicitud con materias y precios, subida de certificados y revisión del admin (aprobar/rechazar).
+- Búsqueda de profesores (BE-03): `GET /teachers` con filtros, orden y paginación, y perfil público `GET /teachers/:teacherId`.
 - Soporte (BE-11): FAQ pública, formulario de contacto y su gestión desde el admin.
 - Frontend (FE-01, FE-02): base visual, layout y página de inicio; cliente de la API (`apps/web/src/lib/api.ts`), TanStack Query y hook `useSession()`.
 
-**Todavía no existe:** pantallas de login y registro (FE-03), agenda y reservas, búsqueda de profesores, pagos, chat y reseñas.
+**Todavía no existe:** pantallas de login y registro (FE-03), agenda y reservas, pagos, chat y reseñas.
 
 ## 2. Cómo trabajar con este backlog
 
@@ -78,11 +79,11 @@ Estas tareas **no dependen de nadie más**. Sugerencia de reparto para empezar: 
 - [ ] Botón de cerrar sesión; rutas que exigen sesión redirigen a login.
 - **Depende de:** FE-02.
 
-### BE-03 · Perfil público y búsqueda de profesores · P0 · L
-- [ ] `GET /teachers` con filtros `facultyId`, `subjectId`, `minPrice`, `maxPrice`, `classType`, orden `recommended | price_asc | price_desc | rating_desc`, y paginación (ver `ARCHITECTURE.md` §6 y §7).
-- [ ] `GET /teachers/:teacherId` con bio, materias, precios y estadísticas.
-- [ ] Solo aparecen profesores `APPROVED` (BR-11).
-- [ ] Orden "recomendado" usando `rankingScore` (hoy vale 0 para todos: dejar el orden por fecha de aprobación como desempate).
+### ✅ BE-03 · Perfil público y búsqueda de profesores · P0 · L
+- [x] `GET /teachers` con filtros `facultyId`, `subjectId`, `minPrice`, `maxPrice`, `classType`, orden `recommended | price_asc | price_desc | rating_desc`, y paginación (ver `ARCHITECTURE.md` §6 y §7).
+- [x] `GET /teachers/:teacherId` con bio, materias, precios y estadísticas.
+- [x] Solo aparecen profesores `APPROVED` (BR-11).
+- [x] Orden "recomendado" usando `rankingScore` (hoy vale 0 para todos: dejar el orden por fecha de aprobación como desempate).
 - **Criterio:** archivo `.http` con ejemplos; `ARCHITECTURE.md` actualizado.
 
 ### BE-07 · Spike: pagos con Mercado Pago · P0 · M

@@ -141,3 +141,32 @@ X-Requested-With: estudioya
 
 ### Un alumno no puede entrar al panel admin → 403 FORBIDDEN
 GET {{baseUrl}}/admin/teacher-applications
+
+###########################################################
+# Búsqueda y perfil público de profesores (BE-03, rutas públicas)
+# Los precios van en centavos de ARS por hora (1200000 = $12.000).
+###########################################################
+
+### Todos los profesores aprobados (orden recomendado)
+GET {{baseUrl}}/teachers
+
+### Filtrar por facultad y materia
+GET {{baseUrl}}/teachers?facultyId=REEMPLAZAR-ID-FACULTAD&subjectId=REEMPLAZAR-ID-MATERIA
+
+### Clases individuales entre $8.000 y $12.000, más baratos primero
+GET {{baseUrl}}/teachers?classType=INDIVIDUAL&minPrice=800000&maxPrice=1200000&sort=price_asc
+
+### Mejor puntuados, con al menos 4 estrellas, segunda página
+GET {{baseUrl}}/teachers?minRating=4&sort=rating_desc&page=2&pageSize=10
+
+### Perfil público (reemplazar por un id devuelto por la búsqueda)
+GET {{baseUrl}}/teachers/REEMPLAZAR-ID-PROFESOR
+
+### Error esperado: rango invertido → 400 VALIDATION_ERROR
+GET {{baseUrl}}/teachers?minPrice=2000000&maxPrice=1000000
+
+### Error esperado: orden no soportado → 400 VALIDATION_ERROR
+GET {{baseUrl}}/teachers?sort=magia
+
+### Error esperado: profesor inexistente o no aprobado → 404 NOT_FOUND
+GET {{baseUrl}}/teachers/00000000-0000-4000-8000-000000000000
