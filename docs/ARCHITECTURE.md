@@ -88,7 +88,7 @@ Cada módulo vive en `apps/api/src/modules/<nombre>/` con su controller, service
 | `auth` | Registro, login, logout, refresh, `me`, guards y roles (Google: pendiente) | ✅ |
 | `users` | Perfil del usuario | ⬜ |
 | `catalog` | Facultades y materias | ✅ |
-| `teachers` | Solicitud de alta de profesor (datos, materias y precios, certificados). Pendiente: perfil público, búsqueda y ranking | ✅ |
+| `teachers` | Solicitud de alta de profesor (datos, materias y precios, certificados). Búsqueda y perfil público (`TeachersController`). Pendiente: ranking real (`rankingScore`) y edición del perfil | ✅ |
 | `storage` | Almacenamiento privado de archivos (disco local en desarrollo) | ✅ |
 | `availability` | Slots de disponibilidad del profesor | ⬜ |
 | `bookings` | Reservas, cupos, cancelaciones, vencimiento de holds | ⬜ |
@@ -226,8 +226,8 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 
 | Método | Ruta | Acceso | Descripción | Estado |
 |---|---|---|---|---|
-| GET | `/teachers` | P | Búsqueda. Filtros: `facultyId`, `subjectId`, `classType`, `modality`, `minPrice`, `maxPrice`, `minRating`, `sort`, `page` | ⬜ |
-| GET | `/teachers/:teacherId` | P | Perfil público con materias, precios y estadísticas | ⬜ |
+| GET | `/teachers` | P | Búsqueda de profesores `APPROVED` con cuenta activa (`Paginated<TeacherCardDto>`). Filtros: `facultyId` (facultad de la materia), `subjectId`, `classType`, `minPrice` y `maxPrice` (centavos por hora), `minRating`, `sort` (`recommended` por defecto, `price_asc`, `price_desc`, `rating_desc`), `page`, `pageSize`. Los filtros de materia, tipo de clase y precio se evalúan sobre la **misma** materia del profesor. Sin `modality` por ahora (la modalidad vive en los horarios, no en la materia). Ver nota abajo | ✅ |
+| GET | `/teachers/:teacherId` | P | Perfil público (`TeacherProfileDto`): bio, materias con precios y estadísticas. Profesor inexistente o no aprobado: `404` | ✅ |
 | GET | `/teachers/:teacherId/reviews` | P | Reseñas paginadas | ⬜ |
 | GET | `/teachers/:teacherId/availability?from=&to=` | P | Slots abiertos con cupos libres | ⬜ |
 | PATCH | `/teachers/me` | T | Edita su perfil | ⬜ |
@@ -238,6 +238,8 @@ Prefijo `/api/v1`. *Acceso:* **P** público · **S** estudiante · **T** profeso
 | GET | `/teachers/me/payouts` | T | Cobros liberados y pendientes | ⬜ |
 | POST | `/teachers/me/payment-account/connect` | T | Devuelve la URL de OAuth de Mercado Pago | ⬜ |
 | GET | `/payments/oauth/callback` | T | Callback de OAuth; guarda tokens cifrados | ⬜ |
+
+> **Nota sobre la búsqueda:** el orden `recommended` usa `rankingScore` (hoy 0 para todos) y desempata por fecha de aprobación. Los órdenes por precio se calculan en memoria sobre filas livianas (id + precios) de los profesores que cumplen los filtros, y recién después se cargan los datos completos de la página pedida. Es suficiente para la beta; si el volumen crece, mover ese paso a SQL. `rankingScore`, el estado y los datos de cobro nunca se exponen.
 
 ### Alta de profesores
 
