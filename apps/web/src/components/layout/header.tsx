@@ -1,10 +1,89 @@
 "use client";
 
+import { LogOutIcon, UserIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
+import { useLogout } from "@/hooks/use-logout";
+import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
+
+/** Acciones de cuenta del header según el estado de la sesión (escritorio y celular). */
+function AccountActions({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
+  const { user, status } = useSession();
+  const { logout, isLoggingOut } = useLogout();
+  const full = mobile ? "w-full" : "";
+
+  // Mientras se verifica la sesión se reserva el espacio: evita mostrar "Ingresar" a un usuario logueado.
+  if (status === "loading") {
+    return (
+      <div
+        className={cn("h-7 animate-pulse rounded-lg bg-white/10", mobile ? "w-full" : "w-44")}
+        aria-hidden="true"
+      />
+    );
+  }
+
+  if (user) {
+    return (
+      <div className={cn("flex gap-3", mobile ? "flex-col" : "items-center")}>
+        <Link
+          href="/mi-cuenta"
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-1.5 text-sm font-medium text-white/90 transition-colors hover:text-white",
+            full,
+          )}
+        >
+          <UserIcon className="size-4" aria-hidden="true" />
+          <span className="max-w-40 truncate">{user.firstName}</span>
+          <span className="sr-only">, ir a mi cuenta</span>
+        </Link>
+        <button
+          type="button"
+          onClick={logout}
+          disabled={isLoggingOut}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "border-white/30 bg-transparent text-white hover:bg-white/10",
+            full,
+          )}
+        >
+          <LogOutIcon aria-hidden="true" />
+          {isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("flex gap-3", mobile ? "flex-col" : "items-center")}>
+      <Link
+        href="/login"
+        onClick={onNavigate}
+        className={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "border-white/30 bg-transparent text-white hover:bg-white/10",
+          full,
+        )}
+      >
+        Ingresar
+      </Link>
+      <Link
+        href="/registro"
+        onClick={onNavigate}
+        className={cn(
+          buttonVariants({ size: "sm" }),
+          "bg-brand-orange-strong font-semibold text-white hover:opacity-90",
+          full,
+        )}
+      >
+        Registrarse
+      </Link>
+    </div>
+  );
+}
 
 export default function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -42,24 +121,7 @@ export default function Header() {
           >
             Inicio
           </Link>
-          <Link
-            href="/login"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "border-white/30 bg-transparent text-white hover:bg-white/10",
-            )}
-          >
-            Ingresar
-          </Link>
-          <Link
-            href="/registro"
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              "bg-brand-orange-strong font-semibold text-white hover:opacity-90",
-            )}
-          >
-            Registrarse
-          </Link>
+          <AccountActions />
         </nav>
 
         {/* Botón hamburguesa — celular */}
@@ -106,28 +168,7 @@ export default function Header() {
               </Link>
             </li>
             <li>
-              <Link
-                href="/login"
-                onClick={() => setMenuAbierto(false)}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "w-full border-white/30 bg-transparent text-white hover:bg-white/10",
-                )}
-              >
-                Ingresar
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/registro"
-                onClick={() => setMenuAbierto(false)}
-                className={cn(
-                  buttonVariants({ size: "sm" }),
-                  "w-full bg-brand-orange-strong font-semibold text-white hover:opacity-90",
-                )}
-              >
-                Registrarse
-              </Link>
+              <AccountActions mobile onNavigate={() => setMenuAbierto(false)} />
             </li>
           </ul>
         </nav>

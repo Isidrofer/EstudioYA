@@ -1,7 +1,7 @@
 # Backlog de EstudioYA
 
 > Lista de trabajo para el equipo. Cualquiera puede tomar tareas **sin esperar** a que otra persona esté conectada.
-> Última actualización: 2026-11-19 · Antes de empezar leer: [README](../README.md) → [ARCHITECTURE](ARCHITECTURE.md) → [DATABASE](DATABASE.md).
+> Última actualización: 2026-11-24 · Antes de empezar leer: [README](../README.md) → [ARCHITECTURE](ARCHITECTURE.md) → [DATABASE](DATABASE.md).
 
 ## 1. Estado actual
 
@@ -13,8 +13,9 @@
 - Búsqueda de profesores (BE-03): `GET /teachers` con filtros, orden y paginación, y perfil público `GET /teachers/:teacherId`.
 - Soporte (BE-11): FAQ pública, formulario de contacto y su gestión desde el admin.
 - Frontend (FE-01, FE-02): base visual, layout y página de inicio; cliente de la API (`apps/web/src/lib/api.ts`), TanStack Query y hook `useSession()`.
+- Frontend (FE-03): registro, login, logout, header según la sesión y rutas privadas (`app/(privado)/`, ej. `/mi-cuenta`).
 
-**Todavía no existe:** pantallas de login y registro (FE-03), agenda y reservas, pagos, chat y reseñas.
+**Todavía no existe:** búsqueda de profesores en la web, agenda y reservas, pagos, chat y reseñas.
 
 ## 2. Cómo trabajar con este backlog
 
@@ -72,11 +73,12 @@ Estas tareas **no dependen de nadie más**. Sugerencia de reparto para empezar: 
 - **Criterio:** una pantalla de prueba muestra el usuario logueado y se recupera sola cuando vence el access token.
 - **Depende de:** nada (la API ya existe).
 
-### FE-03 · Registro, login y logout · P0 · M
-- [ ] Formularios con validación usando `registerSchema` y `loginSchema` de `@estudioya/shared`.
-- [ ] Casillas obligatorias: "soy mayor de 18 años" y "acepto los términos".
-- [ ] Mostrar los errores de campo que devuelve la API (`errors[]`), incluido el `409` por email repetido.
-- [ ] Botón de cerrar sesión; rutas que exigen sesión redirigen a login.
+### ✅ FE-03 · Registro, login y logout · P0 · M
+- [x] Formularios con validación usando `registerSchema` y `loginSchema` de `@estudioya/shared`.
+- [x] Casillas obligatorias: "soy mayor de 18 años" y "acepto los términos".
+- [x] Mostrar los errores de campo que devuelve la API (`errors[]`), incluido el `409` por email repetido.
+- [x] Botón de cerrar sesión; rutas que exigen sesión redirigen a login (grupo `app/(privado)/` con `RequireAuth`).
+- Pendiente fuera de alcance: los textos de "términos y condiciones" no tienen página todavía (FE-13).
 - **Depende de:** FE-02.
 
 ### ✅ BE-03 · Perfil público y búsqueda de profesores · P0 · L
