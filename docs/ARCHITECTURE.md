@@ -163,6 +163,7 @@ La web llama a la API **solo** con el módulo [`apps/web/src/lib/api.ts`](../app
 - **Login y registro** (`/login`, `/registro`): al responder bien, guardan el `AuthUser` con `setQueryData(SESSION_QUERY_KEY, user)` y `useRedirectWhenAuthenticated()` lleva a `?next=` (solo rutas internas, nunca de vuelta a `/login` o `/registro`; ver `apps/web/src/lib/redirect.ts`) o al inicio. Con sesión ya iniciada, esas páginas redirigen solas.
 - **Logout:** `useLogout()` llama a `POST /auth/logout` y hace una navegación completa a `/`, que descarta de memoria todos los datos del usuario anterior.
 - **Rutas privadas:** van dentro del grupo `apps/web/src/app/(privado)/` (el nombre no aparece en la URL), cuyo layout usa `RequireAuth`. Mientras la sesión carga muestra una espera; sin sesión redirige a `/login?next=<ruta>`; si la API falló (no un `401`) ofrece reintentar en vez de redirigir. Se hace en el cliente y no con middleware de Next porque las cookies pertenecen al dominio de la API (en producción el servidor de la web no las ve). La API sigue siendo la que protege los datos. Ruta privada actual: `/mi-cuenta`.
+- **Mockups (FE-14):** `apps/web/src/app/mockups/` contiene pantallas estáticas para acordar el diseño (ver [MOCKUPS.md](MOCKUPS.md)). No llaman a la API: sus datos de ejemplo (`_data.ts`) tienen la forma de los DTOs de `packages/shared`. Tienen `noindex`, no se enlazan desde el sitio y se borran cuando existan las pantallas reales. Las carpetas con `_` (`_components`, `_data.ts`) no generan rutas en Next.
 
 ### Errores
 

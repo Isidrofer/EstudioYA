@@ -14,6 +14,7 @@
 - Soporte (BE-11): FAQ pública, formulario de contacto y su gestión desde el admin.
 - Frontend (FE-01, FE-02): base visual, layout y página de inicio; cliente de la API (`apps/web/src/lib/api.ts`), TanStack Query y hook `useSession()`.
 - Frontend (FE-03): registro, login, logout, header según la sesión y rutas privadas (`app/(privado)/`, ej. `/mi-cuenta`).
+- Frontend (FE-14): mockups navegables de las pantallas principales en `/mockups` (ver [MOCKUPS](MOCKUPS.md)), pendientes de revisión del equipo.
 
 **Todavía no existe:** búsqueda de profesores en la web, agenda y reservas, pagos, chat y reseñas.
 
@@ -88,6 +89,13 @@ Estas tareas **no dependen de nadie más**. Sugerencia de reparto para empezar: 
 - [x] Orden "recomendado" usando `rankingScore` (hoy vale 0 para todos: dejar el orden por fecha de aprobación como desempate).
 - **Criterio:** archivo `.http` con ejemplos; `ARCHITECTURE.md` actualizado.
 
+### ✅ FE-14 · Mockups de las pantallas principales · P0 · M
+- [x] Mockups en código (no Figma) dentro de la web, en `/mockups`, con la paleta y componentes reales y datos de ejemplo con la forma de los DTOs de `@estudioya/shared`.
+- [x] Pantallas: buscar profesores, perfil, confirmar y pagar, mis reservas (con reseña), asistente "Quiero ser profesor" (con pantalla de estado), agenda del profesor, chat y panel de admin.
+- [x] Versión celular y escritorio; notas de diseño con las preguntas abiertas en cada pantalla.
+- [x] Documentado en [`docs/MOCKUPS.md`](MOCKUPS.md) (qué tarea implementa cada pantalla y qué falta acordar).
+- Pendiente: que el equipo revise y apruebe el diseño (comentarios en el PR). La agenda sigue sujeta a ⛔ D-07.
+
 ### BE-07 · Spike: pagos con Mercado Pago · P0 · M
 Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Resultado: un documento corto en `docs/adr/0002-pagos-mercado-pago.md`.
 - [ ] Crear cuenta de desarrollador y credenciales de prueba.
@@ -123,7 +131,7 @@ Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Result
 | FE-11 | Chat privado en tiempo real | P2 | L | BE-10 |
 | FE-12 | Reseñas: formulario post-clase y listado en el perfil | P2 | M | BE-09 |
 | FE-13 | Páginas de FAQ, contacto y términos/privacidad | P1 | M | BE-11 |
-| FE-14 | Mockups de las pantallas principales (Figma o a mano) para acordar el diseño | P0 | M | — |
+| FE-14 | ✅ Mockups de las pantallas principales en `/mockups` para acordar el diseño (ver [MOCKUPS](MOCKUPS.md)) | P0 | M | — |
 | FE-15 | Accesibilidad y responsive: revisión final, estados de carga y error | P2 | M | resto |
 
 ## 7. Backend
@@ -164,7 +172,7 @@ Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Result
 
 ## 9. Orden sugerido
 
-1. **Primeras 2 semanas:** FE-01, FE-02, FE-03, FE-14 · BE-03, BE-07, BE-15 · OPS-01 · PM-01, PM-02.
+1. **Primeras 2 semanas:** FE-01, FE-02, FE-03, FE-14 (hechas) · BE-03, BE-07, BE-15 · OPS-01 · PM-01, PM-02.
 2. **Siguientes:** FE-04, FE-07, FE-08 · BE-13, BE-11, BE-05 · D-07 resuelta → BE-01, BE-02.
 3. **Después:** reservas (BE-04, FE-10) → pagos (BE-08) → reseñas y ranking (BE-09, FE-12) → chat (BE-10, FE-11).
 4. **Antes de lanzar:** BE-14 (email y recuperar contraseña), OPS-02, PM-03, PM-04, beta cerrada (PM-05).
