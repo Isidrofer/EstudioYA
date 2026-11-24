@@ -54,6 +54,7 @@ estudioya/
 ├── docs/
 │   ├── ARCHITECTURE.md      # Arquitectura, puertos, endpoints, contratos
 │   ├── DATABASE.md          # Modelo de datos y restricciones
+│   ├── MOCKUPS.md           # Mockups de las pantallas principales (FE-14)
 │   └── adr/                 # Decisiones de arquitectura (una por archivo)
 ├── .github/workflows/       # CI
 ├── docker-compose.yml       # PostgreSQL, RabbitMQ, Mailpit
@@ -119,7 +120,7 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
 
 - [x] **Fase 0 · Fundaciones**: decisiones de producto y stack, estructura del monorepo, esquema de base, Docker, documentación inicial
 - [x] **Fase 0 · Entorno local**: dependencias instaladas, infraestructura Docker levantada, primera migración (`init`) aplicada con sus restricciones
-- [ ] **Fase 0 · Pendiente**: repositorio en GitHub con `main` protegida, CI en verde, definir rango de precios y reglas "por confirmar", mockups
+- [ ] **Fase 0 · Pendiente**: repositorio en GitHub con `main` protegida, CI en verde, definir rango de precios y reglas "por confirmar", revisar los mockups (hechos en `/mockups`, ver [docs/MOCKUPS.md](docs/MOCKUPS.md))
 - [ ] **Fase 1 · MVP**
   - [x] Backend: conexión a la base, datos de prueba, registro/login/logout/refresh/me, catálogo de facultades y materias
   - [x] Backend: solicitud de alta de profesor (datos, materias con precios, certificados) y revisión manual del admin
@@ -130,6 +131,7 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
   - [x] Frontend: base visual (Tailwind CSS, shadcn/ui), layout con header y footer, página de inicio
   - [x] Frontend: cliente de la API con renovación automática de sesión, TanStack Query y `useSession()`
   - [x] Frontend: registro, login, logout y protección de rutas privadas
+  - [x] Frontend: mockups navegables de las pantallas principales (`/mockups`)
   - [ ] Frontend: búsqueda de profesores
 - [ ] **Fase 2**: pagos con comisión (Mercado Pago), clases grupales, reseñas y ranking
 - [ ] **Fase 3**: chat con moderación, FAQ, soporte, alta de profesores con verificación, panel admin
@@ -150,6 +152,7 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y 
 
 | Fecha | Cambio |
 |---|---|
+| 2026-11-24 | FE-14 · Mockups de las pantallas principales, hechos en código dentro de la web: índice en `/mockups` y 8 pantallas (buscar profesores, perfil, confirmar y pagar, mis reservas con reseña, asistente "Quiero ser profesor" con pantalla de estado, agenda semanal del profesor, chat y panel de admin). Usan datos de ejemplo con la forma de los DTOs de `@estudioya/shared` (`app/mockups/_data.ts`), no llaman a la API, tienen `noindex` y no están enlazados desde el sitio. Notas de diseño con las preguntas abiertas en cada pantalla. Nuevo `docs/MOCKUPS.md`. Sin cambios en la API ni en la base |
 | 2026-11-24 | FE-03 · Registro, login y logout en la web: páginas `/registro` y `/login` validadas con `registerSchema` y `loginSchema` de `@estudioya/shared`, casillas obligatorias de mayoría de edad y términos, errores `errors[]` de la API junto a cada campo y aviso con link al login ante el `409` por email repetido. El header muestra el usuario y "Cerrar sesión" (`POST /auth/logout`). Rutas privadas en el grupo `app/(privado)/` protegidas por `RequireAuth` (redirige a `/login?next=...`); primera ruta privada: `/mi-cuenta`. Se borra la pantalla temporal `/prueba-sesion`. Componentes shadcn `input`, `label` y `checkbox`. Los mensajes de `registerSchema`/`loginSchema` pasan a español (las reglas no cambian). Sin cambios en la API ni en la base |
 | 2026-11-20 | BE-03 · Búsqueda y perfil público de profesores: `GET /teachers` (filtros por facultad, materia, tipo de clase, precio y puntaje; orden recomendado / precio / puntaje; paginado) y `GET /teachers/:teacherId`. Solo profesores aprobados con cuenta activa. Schemas y DTOs en `packages/shared/src/schemas/teacher-search.ts`. Sin cambios en la base |
 | 2026-11-20 | FE-02 · Cliente de la API y sesión en la web: módulo `apps/web/src/lib/api.ts` (cookies, header CSRF, errores `problem+json` como `ApiError`, reintento único tras `POST /auth/refresh` ante un `401`, con refresh compartido entre requests simultáneas), TanStack Query configurado en `components/providers.tsx` y hook `useSession()` sobre `GET /auth/me`. Pantalla temporal `/prueba-sesion`. Nueva dependencia `@tanstack/react-query`. Sin cambios en la API ni en la base |

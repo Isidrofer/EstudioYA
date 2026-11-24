@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "web-build", "runtimeExecutable": "npx", "runtimeArgs": ["next", "start", "apps/web", "-p", "3100"], "port": 3100 }
+  ]
+}
