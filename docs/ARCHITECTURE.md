@@ -1,7 +1,7 @@
 # Arquitectura de EstudioYA
 
 > Documento vivo. Se actualiza en el mismo PR que cambia endpoints, puertos, contratos o reglas.
-> Última actualización: 2026-11-19 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
+> Última actualización: 2026-11-24 · Leyenda de estado: ⬜ planificado · 🟨 en desarrollo · ✅ implementado
 
 ## Índice
 
@@ -159,7 +159,10 @@ La web llama a la API **solo** con el módulo [`apps/web/src/lib/api.ts`](../app
 - La sesión vive en la cache de TanStack Query con la clave `['auth','me']`. El hook `useSession()` devuelve `{ user, status }` (`loading` · `authenticated` · `unauthenticated`); sin sesión, `user` es `null` y no hay error. Tras login o logout se actualiza con `queryClient.setQueryData(SESSION_QUERY_KEY, ...)`. Si el refresh falla, la sesión pasa a `null` en toda la app.
 - Solo se usa en Client Components (`"use client"`): en el servidor de Next no están las cookies del usuario.
 - `NEXT_PUBLIC_API_URL` se lee de `apps/web/.env.local` (Next no carga el `.env` de la raíz); si no está, se usa `http://localhost:4000/api/v1`.
-- `/prueba-sesion` es una pantalla temporal para probar todo esto; se borra cuando exista el login de FE-03.
+- **Formularios:** se validan en el navegador con el mismo schema de `packages/shared` que usa la API (`schema.safeParse`); los mensajes de los schemas están en español porque los muestran ambos lados. Los `errors[]` de un `400` se muestran junto a su campo con `apiErrorToFormErrors()` (`apps/web/src/lib/form-errors.ts`); el resto (`401`, `429`, red, `5xx`) como mensaje general. El registro trata el `409` (email repetido) con un aviso y un link al login.
+- **Login y registro** (`/login`, `/registro`): al responder bien, guardan el `AuthUser` con `setQueryData(SESSION_QUERY_KEY, user)` y `useRedirectWhenAuthenticated()` lleva a `?next=` (solo rutas internas, nunca de vuelta a `/login` o `/registro`; ver `apps/web/src/lib/redirect.ts`) o al inicio. Con sesión ya iniciada, esas páginas redirigen solas.
+- **Logout:** `useLogout()` llama a `POST /auth/logout` y hace una navegación completa a `/`, que descarta de memoria todos los datos del usuario anterior.
+- **Rutas privadas:** van dentro del grupo `apps/web/src/app/(privado)/` (el nombre no aparece en la URL), cuyo layout usa `RequireAuth`. Mientras la sesión carga muestra una espera; sin sesión redirige a `/login?next=<ruta>`; si la API falló (no un `401`) ofrece reintentar en vez de redirigir. Se hace en el cliente y no con middleware de Next porque las cookies pertenecen al dominio de la API (en producción el servidor de la web no las ve). La API sigue siendo la que protege los datos. Ruta privada actual: `/mi-cuenta`.
 
 ### Errores
 
