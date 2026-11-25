@@ -10,7 +10,10 @@
     "prisma:generate": "dotenv -e ../../.env -- prisma generate",
     "prisma:validate": "dotenv -e ../../.env.example -- prisma validate",
     "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
-    "prisma:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts"
+    "prisma:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "spike:mp": "dotenv -e ../../.env -- tsx scripts/mp-spike/cli.ts",
+    "spike:mp:selftest": "tsx scripts/mp-spike/selftest.ts",
+    "spike:mp:typecheck": "tsc -p scripts/mp-spike/tsconfig.json"
   },
   "dependencies": {
     "@estudioya/shared": "*",
