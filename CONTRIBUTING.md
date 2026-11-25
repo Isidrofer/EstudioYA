@@ -27,6 +27,12 @@ Un PR que cambie comportamiento debe actualizar en el mismo PR:
 - Los contratos de entrada/salida de la API se definen con Zod en `packages/shared` y se reutilizan en API y web.
 - Ningún secreto en el repo. Se usa `.env` (ignorado por git) y `.env.example` como referencia.
 
+## Lint y formato
+
+- **Lint:** `npm run lint` en la raíz corre ESLint (config flat, ESLint 9) en todo el monorepo.
+- **Formato:** `npm run format` formatea todo el código con Prettier. `npm run format:check` verifica sin modificar.
+- Antes de abrir un PR, corré `npm run lint` y `npm run typecheck`. Ambos deben pasar.
+
 ## Migraciones de base de datos
 
 - Cada cambio de `schema.prisma` genera una migración: `npm run db:migrate -- --name <descripcion>`.

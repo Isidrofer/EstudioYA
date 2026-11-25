@@ -105,10 +105,10 @@ Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Result
 - [ ] El equipo aprueba la decisión del ADR §14 (cambios en BR-01, BR-12 y BR-13; nueva decisión D-08).
 - **Criterio:** ADR con la conclusión y un ejemplo de código que funcione contra el entorno de pruebas.
 
-### OPS-01 · CI más completo · P0 · S
-- [ ] Agregar ESLint + Prettier y un paso de lint en `.github/workflows/ci.yml`.
-- [ ] Agregar un servicio PostgreSQL al workflow (hará falta para los tests de la API).
-- [ ] Plantilla de Pull Request (`.github/pull_request_template.md`) con la definición de "hecho".
+### ✅ OPS-01 · CI más completo · P0 · S
+- [x] Agregar ESLint + Prettier y un paso de lint en `.github/workflows/ci.yml`.
+- [x] Agregar un servicio PostgreSQL al workflow (hará falta para los tests de la API).
+- [x] Plantilla de Pull Request (`.github/pull_request_template.md`) con la definición de "hecho".
 
 ### BE-15 · Tests automáticos · P0 · M
 - [ ] Elegir e instalar el framework (propuesta: Vitest o Jest) para `apps/api` y `packages/shared`.
@@ -161,6 +161,7 @@ Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Result
 | OPS-03 | Observabilidad: logs estructurados (pino) y Sentry | P1 | S | — |
 | OPS-04 | Decidir dónde corre RabbitMQ en producción (hoy es local con Docker) | P1 | S | — |
 | OPS-05 | Dependabot o revisión periódica de dependencias; `npm audit` en el CI | P2 | S | OPS-01 |
+| OPS-07 | Formatear todo el repo con Prettier y agregar `format:check` al CI (en un PR aparte para no romper ramas) | P1 | S | OPS-01 |
 | OPS-06 | Tests end-to-end del flujo principal con Playwright (registro → reserva → pago) | P2 | L | FE-10 |
 | PM-01 | Definir el rango de precios definitivo (D-01) | P0 | S | — |
 | PM-02 | Resolver las reglas "por confirmar" (D-02) | P0 | S | — |
