@@ -8,6 +8,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: estudioya
+          POSTGRES_PASSWORD: estudioya_dev
+          POSTGRES_DB: estudioya
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U estudioya -d estudioya"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://estudioya:estudioya_dev@localhost:5432/estudioya
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,12 +34,12 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Lint
+        run: npm run lint
       - name: Validar esquema de base de datos
         run: npm run db:validate
       - name: Generar cliente Prisma
         run: npx prisma generate --schema apps/api/prisma/schema.prisma
-        env:
-          DATABASE_URL: postgresql://user:pass@localhost:5432/db
       - name: Typecheck
         run: npm run typecheck
       - name: Build
