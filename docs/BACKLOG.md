@@ -1,7 +1,7 @@
 # Backlog de EstudioYA
 
 > Lista de trabajo para el equipo. Cualquiera puede tomar tareas **sin esperar** a que otra persona esté conectada.
-> Última actualización: 2026-11-24 · Antes de empezar leer: [README](../README.md) → [ARCHITECTURE](ARCHITECTURE.md) → [DATABASE](DATABASE.md).
+> Última actualización: 2026-11-26 · Antes de empezar leer: [README](../README.md) → [ARCHITECTURE](ARCHITECTURE.md) → [DATABASE](DATABASE.md).
 
 ## 1. Estado actual
 
@@ -14,6 +14,7 @@
 - Soporte (BE-11): FAQ pública, formulario de contacto y su gestión desde el admin.
 - Frontend (FE-01, FE-02): base visual, layout y página de inicio; cliente de la API (`apps/web/src/lib/api.ts`), TanStack Query y hook `useSession()`.
 - Frontend (FE-03): registro, login, logout, header según la sesión y rutas privadas (`app/(privado)/`, ej. `/mi-cuenta`).
+- Frontend (FE-04): catálogo de facultades y materias con buscador en `/explorar`.
 - Frontend (FE-14): mockups navegables de las pantallas principales en `/mockups` (ver [MOCKUPS](MOCKUPS.md)), pendientes de revisión del equipo.
 
 **Todavía no existe:** búsqueda de profesores en la web, agenda y reservas, pagos, chat y reseñas.
@@ -122,7 +123,7 @@ Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Result
 
 | ID | Tarea | Prioridad | Tamaño | Depende de |
 |---|---|---|---|---|
-| FE-04 | Explorar catálogo: lista de facultades → materias, con buscador (`/faculties`, `/subjects`) | P0 | S | FE-01, FE-02 |
+| FE-04 | ✅ Explorar catálogo: lista de facultades → materias, con buscador (`/faculties`, `/subjects`) | P0 | S | FE-01, FE-02 |
 | FE-05 | Búsqueda de profesores con filtros (facultad, materia, precio, tipo de clase) y tarjetas de profesor | P1 | L | BE-03, FE-04 |
 | FE-06 | Perfil público de un profesor (materias, precios, reseñas, horarios disponibles) | P1 | M | BE-03 |
 | FE-07 | **Asistente "Quiero ser profesor"**: datos, materias con precios (validar con `isPriceInRange`), subida de certificados con los documentos que faltan (`missingDocuments`), envío y pantalla de estado (borrador / en revisión / rechazada con motivo / aprobada) | P0 | L | FE-03 |
@@ -174,8 +175,8 @@ Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Result
 
 ## 9. Orden sugerido
 
-1. **Primeras 2 semanas:** FE-01, FE-02, FE-03, FE-14 (hechas) · BE-03, BE-07, BE-15 · OPS-01 · PM-01, PM-02.
-2. **Siguientes:** FE-04, FE-07, FE-08 · BE-13, BE-11, BE-05 · D-07 resuelta → BE-01, BE-02.
+1. **Primeras 2 semanas:** FE-01, FE-02, FE-03, FE-14 · BE-03 · OPS-01(hechas), BE-07, BE-15 · PM-01, PM-02.
+2. **Siguientes:** FE-04 (hecha), FE-07, FE-08 · BE-13, BE-11, BE-05 · D-07 resuelta → BE-01, BE-02.
 3. **Después:** reservas (BE-04, FE-10) → pagos (BE-08) → reseñas y ranking (BE-09, FE-12) → chat (BE-10, FE-11).
 4. **Antes de lanzar:** BE-14 (email y recuperar contraseña), OPS-02, PM-03, PM-04, beta cerrada (PM-05).
 

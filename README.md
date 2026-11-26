@@ -3,7 +3,7 @@
 Plataforma de clases particulares **hecha por estudiantes, para estudiantes**. Un estudiante reserva una clase en el calendario de un profesor (estudiante avanzado o graduado), paga dentro de la app y después puntúa al profesor.
 
 > **Estado del proyecto:** Fase 0 (fundaciones). Ver el [roadmap](#roadmap) y el [CHANGELOG](#changelog).
-> Última actualización: 2026-11-24
+> Última actualización: 2026-11-26
 
 ## Características previstas
 
@@ -135,6 +135,7 @@ Instalar en VS Code la extensión **REST Client** (`humao.rest-client`), abrir l
   - [x] Frontend: cliente de la API con renovación automática de sesión, TanStack Query y `useSession()`
   - [x] Frontend: registro, login, logout y protección de rutas privadas
   - [x] Frontend: mockups navegables de las pantallas principales (`/mockups`)
+  - [x] Frontend: catálogo de facultades y materias con buscador (`/explorar`) — FE-04
   - [ ] Frontend: búsqueda de profesores
 - [ ] **Fase 2**: pagos con comisión (Mercado Pago), clases grupales, reseñas y ranking
 - [ ] **Fase 3**: chat con moderación, FAQ, soporte, alta de profesores con verificación, panel admin
@@ -155,6 +156,7 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y 
 
 | Fecha | Cambio |
 |---|---|
+| 2026-11-26 | FE-04 · Catálogo de facultades y materias: página pública `/explorar` con lista de facultades, buscador de materias que ignora mayúsculas y tildes, estados de carga/error/sin resultados, URL compartible (`?facultad=<id o slug>&q=`), hooks `useFaculties()` y `useCatalogSubjects()` en `hooks/use-catalog.ts` y link "Explorar" en el header (escritorio y celular). Sin cambios en la API ni en la base |
 | 2026-11-25 | OPS-01 · CI más completo: ESLint 9 (flat config) con typescript-eslint y eslint-config-next, Prettier (sin formateo masivo todavía), servicio PostgreSQL 16 en el workflow de CI, paso de lint en el CI, plantilla de Pull Request en español, `.gitattributes` con `eol=lf` |
 | 2026-11-24 | BE-07 · Spike de pagos con Mercado Pago: [ADR 0002](docs/adr/0002-pagos-mercado-pago.md) (estado: Propuesta) con la investigación de Split 1:1, OAuth, reserva/captura, webhooks, riesgo R-01, alternativas e implicancias legales/fiscales. Prueba técnica sin dependencias nuevas en `apps/api/scripts/mp-spike/` (`npm run spike:mp -w @estudioya/api`), con 14 pruebas sin conexión; la ejecución contra el sandbox queda pendiente de credenciales de prueba. Sin cambios en la API ni en la base |
 | 2026-11-24 | FE-14 · Mockups de las pantallas principales, hechos en código dentro de la web: índice en `/mockups` y 8 pantallas (buscar profesores, perfil, confirmar y pagar, mis reservas con reseña, asistente "Quiero ser profesor" con pantalla de estado, agenda semanal del profesor, chat y panel de admin). Usan datos de ejemplo con la forma de los DTOs de `@estudioya/shared` (`app/mockups/_data.ts`), no llaman a la API, tienen `noindex` y no están enlazados desde el sitio. Notas de diseño con las preguntas abiertas en cada pantalla. Nuevo `docs/MOCKUPS.md`. Sin cambios en la API ni en la base |
