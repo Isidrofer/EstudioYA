@@ -1,7 +1,7 @@
 # ADR 0002: Pagos con Mercado Pago (spike BE-07)
 
-- **Estado:** Propuesta. Pendiente de (1) la prueba en el entorno de pruebas de Mercado Pago con credenciales reales de prueba y (2) la aprobación del equipo de los cambios de reglas de la §14.
-- **Fecha:** 2026-11-24
+- **Estado:** Propuesta. La prueba en el entorno de pruebas de Mercado Pago **se ejecutó el 2026-11-26 y funcionó** (§9.4 y §9.5). Falta la aprobación del equipo de los cambios de reglas de la §14.
+- **Fecha:** 2026-11-24 · actualizado 2026-11-26 con los resultados del sandbox
 - **Tarea:** BE-07 · Spike de pagos (desbloquea BE-08)
 - **Relacionado:** [ADR 0001](0001-arquitectura-y-stack.md), [ARCHITECTURE §5 (BR-01, BR-06, BR-12, BR-13), §6 reglas 19–21, §9, §12 (R-01)](../ARCHITECTURE.md), [DATABASE](../DATABASE.md)
 
@@ -36,7 +36,8 @@ Este spike responde: ¿qué permite realmente Mercado Pago en Argentina?, ¿se p
 2. Lectura de las condiciones comerciales públicas del checkout para vendedores argentinos (plazos de liberación).
 3. Búsqueda de normativa del BCRA sobre proveedores de servicios de pago (solo como orientación para la consulta legal, §13).
 4. **Prueba técnica** en `apps/api/scripts/mp-spike/` (§9): cliente OAuth, cifrado de tokens, preferencia con `marketplace_fee`, consulta de pagos y verificación de firmas de webhooks.
-5. **Pruebas ejecutadas** (§9.4): 14 pruebas sin conexión de la lógica propia y un sondeo de los endpoints reales sin credenciales. **No se pudo ejecutar el flujo contra el sandbox** porque el proyecto todavía no tiene una aplicación ni credenciales de prueba de Mercado Pago (las variables `MP_*` del `.env` están vacías). Ver §10.
+5. **Pruebas ejecutadas** (§9.4): 14 pruebas sin conexión de la lógica propia y un sondeo de los endpoints reales sin credenciales.
+6. **Prueba contra el sandbox (2026-11-26)** (§9.4 y §9.5): OAuth de un vendedor de prueba, preferencia con `marketplace_fee`, pago con tarjeta aprobado con la comisión aplicada y webhook real con firma válida. Para llegar a eso hubo que corregir cómo se crea la aplicación y cómo se pide el token (§9.5).
 
 ## 4. Documentación oficial consultada
 
@@ -75,9 +76,10 @@ Se separan los conceptos que el pedido del spike exige no mezclar.
   - Checkout API (Payments) → `application_fee` en `POST /v1/payments`.
   - El Split 1:1 se integra "sólo" con Checkout Pro, Checkout API y Checkout Bricks. La Orders API no aparece en la guía de split.
 - **[Doc]** El pago se crea **con el access token del vendedor** (el profesor), obtenido por OAuth. El `user_id` del token es el `collector_id` del pago. La aplicación de la plataforma es la que recibe la comisión.
-- **[Doc]** Orden de descuentos: "primero se descuenta la comisión de Mercado Pago, y la comisión del marketplace se descuenta del saldo restante". **Consecuencia:** con `marketplace_fee` = 35 % del precio, el profesor recibe **65 % menos la comisión de Mercado Pago**, no el 65 % que dice hoy BR-01 (ver §14, decisión D-08).
+- **[Doc + Probado]** Orden de descuentos: "primero se descuenta la comisión de Mercado Pago, y la comisión del marketplace se descuenta del saldo restante". **Consecuencia:** con `marketplace_fee` = 35 % del precio, el profesor recibe **65 % menos la comisión de Mercado Pago**, no el 65 % que dice hoy BR-01 (ver §14, decisión D-08). En sandbox, sobre $15.000: comisión de Mercado Pago $615, comisión de la plataforma $5.250, **neto del profesor $9.135**; las dos figuran en `fee_details` con `fee_payer: collector` (§9.4).
 - **[Doc]** Requisitos del vendedor: cuenta de Mercado Pago de vendedor con nivel de identificación **KYC 6** y autorizar a la aplicación por OAuth. La aplicación se crea como "Pagos online" → Checkout Pro o Checkout API → modelo **Marketplace**.
-- **[Doc + A validar]** La guía de split dice que solo "permite realizar pagos con dinero en cuenta entre cuentas de Mercado Pago. No se permiten transferencias de instituciones financieras externas." No queda claro si eso excluye que el alumno pague con tarjeta o solo describe cómo se mueve el dinero entre cuentas. **Es la primera prueba a hacer en sandbox (§9.3, paso 5).**
+- **[Probado]** En el panel actual no aparece la opción "modelo Marketplace" al crear la aplicación. Lo que hizo funcionar el split fue crear la aplicación **desde una cuenta con perfil Marketplace** (en pruebas, una cuenta de prueba de tipo "Marketplace") y con **Checkout Pro + API de Preferences**. Con eso la preferencia devuelve `marketplace: "MP-MKT-<id de la aplicación>"`; con una aplicación creada desde una cuenta común devuelve `marketplace: "NONE"` y todos los pagos al vendedor se rechazan (§9.5).
+- **[Probado]** El alumno **puede pagar con tarjeta de crédito** en split: pago aprobado con Mastercard de prueba. La frase de la guía sobre "dinero en cuenta" no impide pagar con tarjeta. Débito y otros medios no se probaron.
 
 ### 5.2 Autorización y captura (reserva de fondos)
 
@@ -90,7 +92,7 @@ Se separan los conceptos que el pedido del spike exige no mezclar.
 
 - **[Doc]** Las páginas de split no ofrecen ningún parámetro para que el integrador elija **cuándo** se libera el dinero al vendedor. Lo único que mencionan es configurar la fecha de liberación **de la comisión** del marketplace, y para eso hay que contactar "a tu ejecutivo comercial de cartera asesorada".
 - **[Doc]** Para cobros online, el vendedor elige en su propia cuenta cuándo recibe el dinero: "al instante, en 10, 18 o 35 días corridos", y "cuanto antes lo recibas, mayor será el costo de procesamiento" (condiciones públicas del checkout; tasas publicadas a la fecha: 6,29 %, 4,39 %, 3,39 % y 1,49 % + IVA respectivamente, variables por provincia).
-- **[A validar]** El pago expone `money_release_date` (fecha de liberación). Sirve para **informar** al profesor, no para fijarla.
+- **[Probado]** El pago expone `money_release_date` y `money_release_status`. En sandbox: pago del 2026-11-26, liberación el 2026-12-14 (18 días), estado `pending`. Sirve para **informar** al profesor, no para fijarla.
 - **[No verificado]** Existe una API "Advanced Payments" con `disbursements` y `money_release_days` por vendedor, que permitiría diferir la liberación. Su documentación devolvió 404 durante el spike y una búsqueda la describe como *legacy*. **No se tomó como opción viable sin confirmación de Mercado Pago.**
 
 ### 5.4 Reembolsos y contracargos
@@ -103,6 +105,8 @@ Se separan los conceptos que el pedido del spike exige no mezclar.
 
 - **[Doc]** Credenciales de una aplicación: **Public Key** (frontend), **Access Token** (backend, nunca en el frontend), **Client ID** y **Client Secret** (OAuth). Las de prueba se crean con la aplicación y su access token empieza con `APP_USR` (no `TEST-`). Las de producción requieren "activar el entorno de producción" (rubro, sitio web, términos).
 - **[Doc]** Cuentas de prueba: hasta **15** por aplicación, se crean en *Tus integraciones → Cuentas de prueba*. El país se elige al crearlas y no se puede cambiar. Vendedor y comprador deben ser **del mismo país**; en marketplace se puede usar además una cuenta que represente al integrador.
+- **[Probado]** Hay tres tipos de cuenta de prueba: **Comprador**, **Vendedor** y **Marketplace** ("para simular a los intermediarios en pruebas con Split de Pagos"). Las cuentas de prueba **no se pueden borrar**. En una aplicación que pertenece a una cuenta de prueba, el panel muestra un solo juego de credenciales (Public Key y Access Token `APP_USR`) y el Client Secret aparece en otra sección del menú de la aplicación.
+- **[Probado]** El panel avisa que la **API de Preferences "será descontinuada pronto"**. Hoy es la única con la que funcionó el split en Checkout Pro (la Orders API no aparece en la guía de split). **Riesgo para BE-08:** seguir los anuncios de Mercado Pago y planificar la migración cuando la Orders API soporte split.
 
 ## 6. Arquitectura propuesta (para BE-08)
 
@@ -177,7 +181,10 @@ sequenceDiagram
 ```
 
 - **[Doc]** El `redirect_uri` debe coincidir **exactamente** con el configurado en la aplicación; los datos variables van en `state`.
-- **[Doc]** El access token dura **180 días** (`expires_in` 15552000). La renovación usa `grant_type=refresh_token`, solo funciona si el `scope` incluye `offline_access`, y **el refresh token también se renueva**: hay que guardar siempre el par nuevo.
+- **[Probado]** El panel **no acepta `localhost`** como Redirect URL, ni con `http` ni con `https` ("Revisá la URL que ingresaste"). En desarrollo hace falta una URL pública HTTPS: se usó un dominio fijo gratuito de ngrok que apunta a `localhost:4000` (§9.2).
+- **[Probado]** **No usar `test_token=true`** al canjear el code. Con ese parámetro el token sale `TEST-…` y el checkout de las preferencias creadas con él falla ("Tuvimos un problema"). Sin el parámetro el token sale `APP_USR-…` y funciona.
+- **[Probado]** El code de autorización incluye el `user_id` de quien autorizó al final (`TG-…-<user_id>`). En el callback de BE-08 conviene compararlo con el `user_id` de la respuesta de `/oauth/token`, y en pruebas sirve para detectar que se autorizó con la cuenta equivocada.
+- **[Probado]** El access token dura **180 días** (`expires_in` 15552000) y el `scope` devuelto incluye `offline_access`. La renovación usa `grant_type=refresh_token`, solo funciona si el `scope` incluye `offline_access`, y **el refresh token también se renueva**: hay que guardar siempre el par nuevo.
 - **[Doc]** PKCE es opcional. Si se activa en la aplicación pasa a ser obligatorio (`code_challenge`, `code_challenge_method` S256 y `code_verifier`).
 - **[Doc]** La URL de autorización aparece con host `.com.ar` en la guía de split y `.com` en la guía general de OAuth. El spike usa `.com.ar` **[A validar]**.
 - **[Probado]** `POST https://api.mercadopago.com/oauth/token` acepta cuerpo JSON (con credenciales falsas responde `400 invalid_client`, no un error de formato).
@@ -204,10 +211,10 @@ sequenceDiagram
 - **[Doc]** Responder 200 o 201 en menos de **22 segundos**. Si no, Mercado Pago reintenta cada 15 minutos y, después del tercer intento, sigue enviando con un plazo más largo. Por eso hay que responder rápido y procesar en segundo plano (§9 de ARCHITECTURE).
 - **[Doc]** El cuerpo trae solo el ID (`type`, `action`, `data.id`, `live_mode`, `user_id`…): **siempre** se consulta el pago.
 - **[Doc]** Firma: `x-signature: ts=<ms>,v1=<hmac>`. Se calcula HMAC-SHA256 en hexadecimal, con la clave secreta de *Tus integraciones* como llave, sobre la plantilla `id:[data.id];request-id:[x-request-id];ts:[ts];`. `data.id` sale del **query string** y, si es alfanumérico, va **en minúsculas**. La clave no vence y se puede regenerar.
-- **[A validar]**
-  - La plantilla está detallada en la página de notificaciones de Wallet Connect/Orders; la de webhooks generales solo dice "verificación de firma basada en HMAC". Hay que confirmar con un webhook real de `payment`.
-  - Si falta un valor, el spike omite su segmento (comportamiento usado por implementaciones de la comunidad). Los ejemplos oficiales usan cadena vacía. Hay que confirmarlo con una notificación real.
-  - Si las notificaciones de pagos creados con el token del profesor llegan a la `notification_url` de la preferencia (esperable) o también a la configurada en la aplicación.
+- **[Probado]** La plantilla `id:[data.id];request-id:[x-request-id];ts:[ts];` **verifica** con webhooks reales de `payment` (dos pagos, dos aplicaciones distintas, `valid: true`).
+- **[Probado]** Las notificaciones de pagos creados con el token del profesor llegan a la `notification_url` de la preferencia, firmadas con la clave secreta **de la aplicación de la plataforma**. El cuerpo trae `user_id` = el profesor (`collector_id`) y `live_mode: true` aun en pruebas.
+- **[Probado]** Además del tópico `payment` llegan notificaciones `merchant_order` (con `?id=&topic=merchant_order` en la URL y cuerpo `{resource, topic}`), incluso para intentos de pago rechazados. El controller de BE-08 debe ignorarlas o registrarlas sin procesarlas.
+- **[A validar]** Si falta un valor, el spike omite su segmento (comportamiento usado por implementaciones de la comunidad). Los ejemplos oficiales usan cadena vacía. No se dio el caso en las pruebas.
 - **Idempotencia:** `webhook_events` ya tiene la clave única `(provider, eventKey)`. Como el consumer siempre relee el estado real del pago, procesar dos veces el mismo evento no cambia el resultado. `eventKey` = ID de la notificación **[A validar que los reintentos mantienen el ID]**.
 - **Decisión propia:** comparación en tiempo constante (`timingSafeEqual`) y ventana opcional de antigüedad del `ts`. La documentación no define ventana, así que en el spike está desactivada por defecto.
 
@@ -226,40 +233,44 @@ Sin dependencias nuevas: `fetch` nativo y `node:crypto`. Comandos en `apps/api/p
 
 ### 9.2 Preparación (la hace una persona del equipo, una sola vez)
 
-1. Ingresar a https://www.mercadopago.com.ar/developers con una cuenta de Mercado Pago y crear una **aplicación**: *Pagos online* → *Checkout Pro* → modelo **Marketplace**.
-2. En la aplicación (entorno **Prueba**):
-   - copiar **Client ID** → `MP_APP_ID` y **Client Secret** → `MP_CLIENT_SECRET`;
-   - en *Redirect URL* poner exactamente el valor de `MP_OAUTH_REDIRECT_URL` (hoy `http://localhost:4000/api/v1/payments/oauth/callback`; **[A validar]** si Mercado Pago acepta `http://localhost` o exige HTTPS, en cuyo caso se usa un túnel);
-   - en *Webhooks* configurar la URL de pruebas y copiar la **clave secreta** → `MP_WEBHOOK_SECRET`.
-3. En *Cuentas de prueba* crear, **todas de Argentina**: una cuenta **vendedor** (hace de profesor) y una cuenta **comprador** (hace de alumno).
-4. Generar la clave de cifrado: `npm run spike:mp -w @estudioya/api -- gen-key` → `TOKEN_ENCRYPTION_KEY`.
-5. Todo va en el `.env` de la raíz, **nunca** en el repositorio.
+Pasos que funcionaron el 2026-11-26. El orden importa: la aplicación tiene que pertenecer a la cuenta Marketplace (§9.5).
+
+1. **URL pública para OAuth y webhooks.** Mercado Pago no acepta `localhost`. Crear una cuenta gratuita de [ngrok](https://ngrok.com) (en Windows se instala con `winget install Ngrok.Ngrok`), configurar el authtoken (`ngrok config add-authtoken <token>`) y anotar el **dominio fijo gratuito** que aparece en *Domains* (`<algo>.ngrok-free.dev`). Para levantar el túnel: `ngrok http 4000 --url=https://<dominio>`.
+2. Con tu cuenta real de Mercado Pago, en *Tus integraciones → Cuentas de prueba*, crear **todas de Argentina**:
+   - una cuenta **Marketplace** (hace de plataforma y es la dueña de la aplicación);
+   - una cuenta **Vendedor** (hace de profesor);
+   - una cuenta **Comprador** (hace de alumno).
+3. Cerrar sesión e **ingresar con la cuenta Marketplace** a https://www.mercadopago.com.ar/developers/panel/app. Crear la aplicación: *Crear en el panel de integración* → **Checkout Pro** → *Tipo de API*: **API de Preferences**.
+4. En *Configurar aplicación → Configuración avanzada*: Redirect URL `https://<dominio>/api/v1/payments/oauth/callback`, PKCE **No**, permisos lectura, acceso offline y escritura. Guardar (pide reCAPTCHA).
+5. En *Webhooks* (modo de prueba): URL `https://<dominio>/api/v1/payments/webhooks/mercadopago` y eventos **Pagos**, **Vinculación de aplicaciones**, **Contracargos** y **Split - Autorización**. Al guardar se genera la clave secreta.
+6. Copiar al `.env` de la raíz (**nunca** al repositorio):
+   - N.º de aplicación → `MP_APP_ID`; Client Secret → `MP_CLIENT_SECRET`;
+   - Access Token (`APP_USR-…`) → `MP_PLATFORM_ACCESS_TOKEN`; clave secreta de Webhooks → `MP_WEBHOOK_SECRET`;
+   - `MP_OAUTH_REDIRECT_URL` con el dominio de ngrok.
+7. Generar la clave de cifrado: `npm run spike:mp -w @estudioya/api -- gen-key` → `TOKEN_ENCRYPTION_KEY`.
 
 ### 9.3 Ejecución
 
 ```bash
 npm run build:shared
 npm run spike:mp:selftest -w @estudioya/api              # 1. lógica propia, sin conexión
-npm run spike:mp -w @estudioya/api -- oauth-url          # 2. abrir la URL con el VENDEDOR de prueba (incógnito)
-npm run spike:mp -w @estudioya/api -- oauth-exchange <code> --test   # 3. antes de 10 min
-npm run spike:mp -w @estudioya/api -- preference --amount 1500000    # 4. preferencia de $15.000 con marketplace_fee $5.250
-#   5. Abrir el link con el COMPRADOR de prueba (otra ventana de incógnito) y pagar con tarjeta de prueba.
+npm run spike:mp -w @estudioya/api -- oauth-url          # 2. abrir la URL con el VENDEDOR de prueba (incógnito, ver nota)
+npm run spike:mp -w @estudioya/api -- oauth-exchange <code>          # 3. antes de 10 min. SIN --test (§8.1)
+npm run spike:mp -w @estudioya/api -- preference --amount 1500000 --notification-url https://<dominio>/api/v1/payments/webhooks/mercadopago
+#   4. preferencia de $15.000 con marketplace_fee $5.250. Verificar que la salida diga marketplace: "MP-MKT-…" (no "NONE").
+#   5. Abrir el init_point (www.mercadopago.com.ar, NO sandbox.) con el COMPRADOR de prueba y pagar con tarjeta de prueba.
 #      Nombre del titular APRO = aprobado, OTHE = rechazado, CONT = pendiente.
-#      Tarjetas: ver "Compras de prueba" en la documentación oficial (§4).
-npm run spike:mp -w @estudioya/api -- payment <paymentId>            # 6. estado, marketplace_fee, fee_details, money_release_date
+#      Tarjetas: ver "Compras de prueba" en la documentación oficial (§4) o el panel de la aplicación.
+npm run spike:mp -w @estudioya/api -- payment <paymentId>            # 6. estado, fee_details, neto, money_release_date
 npm run spike:mp -w @estudioya/api -- verify-webhook --x-signature "<header>" --x-request-id "<header>" --data-id <id>   # 7.
 npm run spike:mp -w @estudioya/api -- oauth-refresh                  # 8. renovar y comprobar que el refresh token rota
 ```
 
-Para el paso 7 hace falta recibir un webhook real: correr un túnel hacia un receptor HTTP y pasar su URL con `preference --notification-url <url>`.
+Para el paso 7 hace falta recibir un webhook real: un receptor HTTP en el puerto 4000 que registre query, headers y cuerpo, expuesto con el túnel de ngrok (§9.2).
 
-**Qué registrar en este ADR cuando se ejecute** (completar la tabla de §9.4):
-- si el comprador pudo pagar con **tarjeta** (resuelve la duda de §5.1);
-- `marketplace_fee`, `fee_details` y el neto del profesor reales;
-- `money_release_date` del pago en la cuenta del vendedor;
-- si llegó el webhook y si la firma verificó;
-- si `test_token` hace falta para obtener credenciales de prueba por OAuth;
-- reembolso total y parcial (agregar el comando cuando se valide el endpoint).
+**Nota sobre las sesiones de prueba.** En Chrome todas las ventanas de incógnito comparten la sesión, así que es fácil autorizar o pagar con la cuenta equivocada. Antes de cambiar de cuenta de prueba hay que cerrar **todas** las ventanas de incógnito. El code de OAuth termina en el `user_id` de quien autorizó: si no es el del vendedor, no canjearlo.
+
+**Pendiente de registrar** (no se ejecutó todavía): `oauth-refresh` (rotación del refresh token) y reembolso total y parcial (agregar el comando cuando se valide el endpoint).
 
 ### 9.4 Resultados
 
@@ -270,10 +281,24 @@ Para el paso 7 hace falta recibir un webhook real: correr un túnel hacia un rec
 | CLI sin credenciales | ✅ Falla con un mensaje claro ("Falta MP_APP_ID…") y no llama a Mercado Pago |
 | Sondeo de endpoints reales sin credenciales | ✅ `POST /oauth/token` → `400 invalid_client`; `GET /v1/payments/1` → `401 unauthorized`; `POST /checkout/preferences` → `403` (política de autorización) |
 | `npm run typecheck -w @estudioya/api` | ✅ La API no se ve afectada |
-| OAuth real con vendedor de prueba | ⛔ **No ejecutado**: faltan aplicación y credenciales de prueba |
-| Preferencia con `marketplace_fee` y pago de prueba | ⛔ **No ejecutado** (misma causa) |
-| Webhook real y validación de firma | ⛔ **No ejecutado** (misma causa, y además requiere túnel) |
+| OAuth real con vendedor de prueba (2026-11-26) | ✅ Token `APP_USR-…` del vendedor, 180 días, `scope` con `offline_access`, guardado cifrado. Con `--test` (`test_token=true`) el token sale `TEST-…` y no sirve para cobrar (§9.5) |
+| Pago con tarjeta **sin** split (cuenta dueña de la aplicación) | ✅ Pago 191797311422 · `approved`/`accredited` · $15.000 · Mastercard crédito · comisión de Mercado Pago $615 · neto $14.385 · liberación a los 18 días |
+| Preferencia con `marketplace_fee` y pago de prueba con tarjeta | ✅ Pago 190699902431 · `approved`/`accredited` · $15.000 · Mastercard crédito · `fee_details`: `mercadopago_fee` $615 y `application_fee` $5.250, ambas `fee_payer: collector` · **neto del profesor $9.135** · `money_release_date` 2026-12-14 (18 días) · aplicación creada desde una cuenta Marketplace (§9.5) |
+| Webhook real y validación de firma | ✅ Llegó por el túnel con `type=payment`; `verify-webhook` → `valid: true` en los dos pagos |
+| Renovación del token (`oauth-refresh`) | ⛔ No ejecutado |
+| Reembolso total y parcial | ⛔ No ejecutado (falta el comando) |
 | Reserva/captura con `application_fee` | ⛔ **No ejecutado**. Requiere Checkout API/Bricks; queda como prueba de la opción B |
+
+### 9.5 Problemas encontrados en el sandbox y cómo se resolvieron
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| El panel rechaza `http://localhost…` y `https://localhost…` como Redirect URL | Mercado Pago exige una URL pública | Dominio fijo de ngrok (§9.2, paso 1) |
+| El checkout muestra "Tuvimos un problema" | Token del vendedor pedido con `test_token=true` (`TEST-…`) y link `sandbox_init_point` | Canjear el code sin `--test` y usar `init_point` |
+| El pago se rechaza con "No pudimos procesar tu pago", **incluso sin `marketplace_fee`**; no se crea ningún pago, solo una `merchant_order` en `payment_required` | La aplicación se había creado desde una cuenta común (no Marketplace) y con API de Orders; la preferencia devolvía `marketplace: "NONE"` | Crear la aplicación **desde una cuenta de prueba Marketplace** con Checkout Pro + API de Preferences. La preferencia pasa a devolver `marketplace: "MP-MKT-<app>"` y el pago se aprueba |
+| El code de OAuth es de la cuenta equivocada | Las ventanas de incógnito de Chrome comparten la sesión | Cerrar todas las ventanas de incógnito antes de cambiar de cuenta y revisar el `user_id` al final del code |
+
+**Pendiente para producción [A validar]:** el equivalente real de la "cuenta Marketplace" de pruebas. Hay que confirmar con Mercado Pago qué tiene que tener la cuenta de EstudioYA para que su aplicación opere como marketplace (perfil, habilitación comercial o solo crear la aplicación desde esa cuenta).
 
 ## 10. Limitaciones encontradas
 
@@ -282,9 +307,10 @@ Para el paso 7 hace falta recibir un webhook real: correr un túnel hacia un rec
 3. **Reembolsos limitados por el saldo del profesor** (§5.4).
 4. **La reserva/captura dura 5–7 días**, se probó solo con crédito en la documentación y no está documentada junto con el split.
 5. **Todos los profesores necesitan cuenta de vendedor de Mercado Pago con KYC 6.** Es una barrera de alta para estudiantes.
-6. **Duda abierta sobre los medios de pago** admitidos en split ("dinero en cuenta entre cuentas de Mercado Pago").
-7. Webhooks: Mercado Pago no puede notificar a `localhost`. En desarrollo hace falta un túnel.
-8. Partes de la documentación son inconsistentes o no estaban disponibles (host de OAuth, Advanced Payments, referencia de `GET /payments`).
+6. ~~Duda abierta sobre los medios de pago admitidos en split~~ **Resuelta:** se puede pagar con tarjeta de crédito (§5.1). Otros medios no se probaron.
+7. Webhooks y OAuth: Mercado Pago no puede notificar a `localhost` ni acepta `localhost` como Redirect URL. En desarrollo hace falta un túnel con dominio fijo.
+8. La aplicación tiene que pertenecer a una cuenta con perfil Marketplace (§9.5), y la API de Preferences, la única con la que funcionó, está anunciada como "será descontinuada pronto" (§5.5).
+9. Partes de la documentación son inconsistentes o no estaban disponibles (host de OAuth, Advanced Payments, referencia de `GET /payments`). El host `auth.mercadopago.com.ar` funcionó en las pruebas.
 
 ## 11. Análisis del riesgo R-01
 
@@ -344,10 +370,10 @@ Para el paso 7 hace falta recibir un webhook real: correr un túnel hacia un rec
    - **BR-13**: los reembolsos se hacen por la API de Mercado Pago. Si el profesor no tiene saldo, la plataforma devuelve su comisión y gestiona el resto (definir si la plataforma cubre la diferencia).
    - **D-08 (nueva) · BR-01**: el profesor recibe "65 % menos la comisión de Mercado Pago". Alternativa: bajar `marketplace_fee` para absorber la comisión de Mercado Pago, que es imposible de calcular con exactitud porque depende del plazo que eligió el profesor.
 3. **En paralelo, sin bloquear el MVP:**
-   - Ejecutar §9.3 con credenciales de prueba y completar §9.4 (sobre todo el pago con tarjeta en split).
+   - ~~Ejecutar §9.3 con credenciales de prueba y completar §9.4 (sobre todo el pago con tarjeta en split).~~ Hecho el 2026-11-26. Quedan `oauth-refresh` y reembolsos.
    - Probar la opción B (reserva con `application_fee`) para clases dentro de los 5–7 días.
    - **Contactar a Mercado Pago** (comercial) para preguntar por la liberación diferida (1:N, Advanced Payments o fecha de liberación configurable).
    - Consultar contador y abogado con las preguntas de §13.
 4. **Descartar la opción C para el MVP** por el riesgo legal y fiscal. Se reevalúa si el abogado y el contador confirman que es viable.
 
-**Si la prueba en sandbox mostrara que el split no admite pago con tarjeta** (§5.1), esta decisión debe revisarse antes de empezar BE-08.
+**Resultado de la prueba en sandbox (2026-11-26):** el split **admite pago con tarjeta** y la comisión se aplica como se esperaba (§9.4), así que la opción A se mantiene. Lo que cambia para BE-08: la aplicación de producción tiene que crearse desde la cuenta de EstudioYA con perfil Marketplace (confirmar con Mercado Pago, §9.5), el canje de OAuth no usa `test_token`, los webhooks `merchant_order` se ignoran y hay que seguir el anuncio de baja de la API de Preferences.

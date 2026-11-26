@@ -7,6 +7,8 @@
  *   gen-key                         Genera una TOKEN_ENCRYPTION_KEY nueva (pegarla en el .env).
  *   oauth-url [--pkce]              URL para que el profesor (vendedor de prueba) autorice la app.
  *   oauth-exchange <code> [--test]  Canjea el code del callback y guarda los tokens CIFRADOS.
+ *                                   No usar --test con cuentas de prueba: da un token TEST-… que no
+ *                                   sirve para cobrar (ADR 0002 §9.5).
  *   oauth-refresh                   Renueva el access token guardado (el refresh token rota).
  *   preference [--amount <centavos>] [--title <texto>] [--notification-url <url>]
  *                                   Crea una preferencia de Checkout Pro con marketplace_fee (35 %).
@@ -192,8 +194,15 @@ async function main() {
         marketplace_fee: preference.marketplace_fee,
         external_reference: bookingId,
       });
+      if (preference.marketplace === 'NONE') {
+        console.warn(
+          '\nAVISO: marketplace = "NONE". La aplicación no opera como marketplace y el pago se va a rechazar.\n' +
+            'Creala desde una cuenta de prueba de tipo Marketplace (ADR 0002 §9.2 y §9.5).',
+        );
+      }
       console.log('\nPagá con un COMPRADOR de prueba (otra cuenta de prueba, ventana de incógnito):');
-      console.log(preference.sandbox_init_point ?? preference.init_point);
+      // init_point y no sandbox_init_point: con las cuentas de prueba actuales el link de sandbox falla (ADR §9.5).
+      console.log(preference.init_point ?? preference.sandbox_init_point);
       console.log('Tarjetas de prueba y nombres APRO/OTHE/CONT: ver ADR 0002 §9.');
       return;
     }
