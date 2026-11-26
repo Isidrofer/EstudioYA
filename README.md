@@ -104,6 +104,9 @@ npm run dev:web               # Web en http://localhost:3000
 | `npm run infra:up` / `infra:down` | Levanta / baja la infraestructura Docker |
 | `npm run build` | Compila shared, api y web |
 | `npm run typecheck` | Verifica tipos en todo el monorepo |
+| `npm run lint` | Corre ESLint en todo el monorepo |
+| `npm run format` | Formatea el código con Prettier |
+| `npm run format:check` | Verifica el formato sin modificar archivos |
 | `npm run db:validate` | Valida `schema.prisma` |
 | `npm run db:migrate` | Crea/aplica migraciones de Prisma |
 | `npm run db:seed` | Carga datos de prueba (facultades y materias de ejemplo) |
@@ -152,6 +155,7 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md). El trabajo pendiente, con prioridades y 
 
 | Fecha | Cambio |
 |---|---|
+| 2026-11-25 | OPS-01 · CI más completo: ESLint 9 (flat config) con typescript-eslint y eslint-config-next, Prettier (sin formateo masivo todavía), servicio PostgreSQL 16 en el workflow de CI, paso de lint en el CI, plantilla de Pull Request en español, `.gitattributes` con `eol=lf` |
 | 2026-11-24 | BE-07 · Spike de pagos con Mercado Pago: [ADR 0002](docs/adr/0002-pagos-mercado-pago.md) (estado: Propuesta) con la investigación de Split 1:1, OAuth, reserva/captura, webhooks, riesgo R-01, alternativas e implicancias legales/fiscales. Prueba técnica sin dependencias nuevas en `apps/api/scripts/mp-spike/` (`npm run spike:mp -w @estudioya/api`), con 14 pruebas sin conexión; la ejecución contra el sandbox queda pendiente de credenciales de prueba. Sin cambios en la API ni en la base |
 | 2026-11-24 | FE-14 · Mockups de las pantallas principales, hechos en código dentro de la web: índice en `/mockups` y 8 pantallas (buscar profesores, perfil, confirmar y pagar, mis reservas con reseña, asistente "Quiero ser profesor" con pantalla de estado, agenda semanal del profesor, chat y panel de admin). Usan datos de ejemplo con la forma de los DTOs de `@estudioya/shared` (`app/mockups/_data.ts`), no llaman a la API, tienen `noindex` y no están enlazados desde el sitio. Notas de diseño con las preguntas abiertas en cada pantalla. Nuevo `docs/MOCKUPS.md`. Sin cambios en la API ni en la base |
 | 2026-11-24 | FE-03 · Registro, login y logout en la web: páginas `/registro` y `/login` validadas con `registerSchema` y `loginSchema` de `@estudioya/shared`, casillas obligatorias de mayoría de edad y términos, errores `errors[]` de la API junto a cada campo y aviso con link al login ante el `409` por email repetido. El header muestra el usuario y "Cerrar sesión" (`POST /auth/logout`). Rutas privadas en el grupo `app/(privado)/` protegidas por `RequireAuth` (redirige a `/login?next=...`); primera ruta privada: `/mi-cuenta`. Se borra la pantalla temporal `/prueba-sesion`. Componentes shadcn `input`, `label` y `checkbox`. Los mensajes de `registerSchema`/`loginSchema` pasan a español (las reglas no cambian). Sin cambios en la API ni en la base |
