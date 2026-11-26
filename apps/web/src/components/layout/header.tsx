@@ -121,6 +121,12 @@ export default function Header() {
           >
             Inicio
           </Link>
+          <Link
+            href="/explorar"
+            className="text-sm font-medium text-white/90 transition-colors hover:text-white"
+          >
+            Explorar
+          </Link>
           <AccountActions />
         </nav>
 
@@ -165,6 +171,15 @@ export default function Header() {
                 onClick={() => setMenuAbierto(false)}
               >
                 Inicio
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/explorar"
+                className="block text-sm font-medium text-white/90 hover:text-white"
+                onClick={() => setMenuAbierto(false)}
+              >
+                Explorar
               </Link>
             </li>
             <li>
