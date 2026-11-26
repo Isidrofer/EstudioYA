@@ -126,7 +126,10 @@ export function exchangeAuthorizationCode(params: {
   code: string;
   redirectUri: string;
   codeVerifier?: string;
-  /** `true` pide credenciales de prueba (parámetro `test_token` de la documentación). */
+  /**
+   * `true` pide credenciales de prueba (parámetro `test_token` de la documentación).
+   * Con cuentas de prueba NO hace falta: devuelve un token `TEST-…` con el que el checkout falla (ADR 0002 §9.5).
+   */
   testToken?: boolean;
 }): Promise<MpOAuthToken> {
   return mpRequest<MpOAuthToken>('/oauth/token', {

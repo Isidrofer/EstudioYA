@@ -99,9 +99,9 @@ Estas tareas **no dependen de nadie más**. Sugerencia de reparto para empezar: 
 
 ### [~] BE-07 · Spike: pagos con Mercado Pago · P0 · M
 Es una **investigación** de 1–2 días que desbloquea todo lo de pagos. Resultado: [`docs/adr/0002-pagos-mercado-pago.md`](adr/0002-pagos-mercado-pago.md) (estado: Propuesta) y la prueba técnica en `apps/api/scripts/mp-spike/`.
-- [ ] Crear cuenta de desarrollador y credenciales de prueba. **Bloqueado:** lo tiene que hacer una persona del equipo (pasos en ADR §9.2).
+- [x] Crear cuenta de desarrollador y credenciales de prueba: aplicación creada desde una cuenta de prueba Marketplace, con cuentas de prueba de vendedor y comprador (pasos en ADR §9.2).
 - [x] Confirmar si el modelo *Marketplace/split* permite **retener el dinero hasta que se dicte la clase** (riesgo R-01): según la documentación, **no** en Split 1:1 (ADR §5.3 y §11).
-- [~] Probar un pago de prueba con comisión del 35 % (`marketplace_fee`), el flujo OAuth de vendedores y la firma de los webhooks: código y pruebas sin conexión listos (14/14); **falta ejecutarlo contra el sandbox** (ADR §9.3).
+- [x] Probar un pago de prueba con comisión del 35 % (`marketplace_fee`), el flujo OAuth de vendedores y la firma de los webhooks: ejecutado contra el sandbox el 2026-11-26. Pago con tarjeta aprobado, comisión de $5.250 aplicada, neto del profesor $9.135 y firma del webhook válida (ADR §9.4). Quedan sin probar la renovación del token y los reembolsos.
 - [x] Si no se puede retener: proponer alternativa y sus implicancias legales/fiscales (ADR §12–§14).
 - [ ] El equipo aprueba la decisión del ADR §14 (cambios en BR-01, BR-12 y BR-13; nueva decisión D-08).
 - **Criterio:** ADR con la conclusión y un ejemplo de código que funcione contra el entorno de pruebas.
